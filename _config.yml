@@ -16,9 +16,6 @@ url: https://vee-zhang.github.io/Vee-blog/
 # root: /Vee-blog/
 root: /
 
-# url: ''
-# root: /
-
 permalink: :year/:month/:day/:title/
 permalink_defaults:
 pretty_urls:
