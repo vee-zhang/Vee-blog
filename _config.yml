@@ -1,12 +1,18 @@
 # Hexo Configuration
 ## Docs: https://hexo.io/docs/configuration.html
 ## Source: https://github.com/hexojs/hexo/
-
+# title: William
+# subtitle: 'a programmer'
+# description: ''
+# keywords:
+# author: William Zhang
+# language: zh-CN
+# timezone: 'Asia/Shanghai'
 # Site
 title: Vee's blog
 subtitle: 'make world better !'
-description: 'i'm an Android programer.'
-keywords: 
+description: "i'm an Android programer."
+keywords: [Android,Flutter,Spring,cloud]
 author: Vee Zhang
 language: zh-CN
 timezone: 'Asia/Shanghai'
