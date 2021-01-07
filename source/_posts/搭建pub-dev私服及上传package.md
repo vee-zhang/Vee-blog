@@ -3,8 +3,8 @@ title: 搭建pub.dev私服及上传package
 date: 2021-01-06 16:57:01
 tags: [pub,flutter,dart]
 categories: technology
-top: true
-comments: true
+# top: true
+# comments: true
 ---
 
 事情的起因是，在工作项目中，一开始只有我一个人研发，为了方便，我封装了一个网络访问层。但是随着团队规模的拓展，陆续加入了其他人，时间紧项目重，所以后续的伙伴没有时间来问我这个框架怎么使用，所以他们直接上手改了我的封装！但是后期架构要求加入oauth2.0机制，所以需要全局处理token的有效认证，并且自动刷新token。为了满足这一需求，我需要重新编写网络层，同时为了避免伙伴修改我的抽象，我想到了本文的主题——搭建个pub.dev私服吧！
