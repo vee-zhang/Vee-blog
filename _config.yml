@@ -1,13 +1,6 @@
 # Hexo Configuration
 ## Docs: https://hexo.io/docs/configuration.html
 ## Source: https://github.com/hexojs/hexo/
-# title: William
-# subtitle: 'a programmer'
-# description: ''
-# keywords:
-# author: William Zhang
-# language: zh-CN
-# timezone: 'Asia/Shanghai'
 # Site
 title: Vee's blog
 subtitle: 'make world better !'
@@ -20,7 +13,12 @@ timezone: 'Asia/Shanghai'
 # URL
 ## If your site is put in a subdirectory, set url as 'http://example.com/child' and root as '/child/'
 url: https://vee-zhang.github.io/Vee-blog/
-root: /Vee-blog/
+# root: /Vee-blog/
+root: .
+
+# url: ''
+# root: /
+
 permalink: :year/:month/:day/:title/
 permalink_defaults:
 pretty_urls:
@@ -104,7 +102,7 @@ ignore:
 # Extensions
 ## Plugins: https://hexo.io/plugins/
 ## Themes: https://hexo.io/themes/
-theme: nest
+theme: butterfly
 
 # Deployment
 ## Docs: https://hexo.io/docs/one-command-deployment
