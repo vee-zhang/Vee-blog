@@ -3,17 +3,17 @@
 ## Source: https://github.com/hexojs/hexo/
 
 # Site
-title: Hexo
-subtitle: ''
-description: ''
-keywords:
-author: John Doe
-language: en
-timezone: ''
+title: Vee's blog
+subtitle: 'make world better !'
+description: 'i'm an Android programer.'
+keywords: ["Android","flutter","spring,cloud"]
+author: Vee Zhang
+language: zh-CN
+timezone: 'Asia/Shanghai'
 
 # URL
 ## If your site is put in a subdirectory, set url as 'http://example.com/child' and root as '/child/'
-url: http://example.com
+url: /Vee-blog/
 root: /
 permalink: :year/:month/:day/:title/
 permalink_defaults:
