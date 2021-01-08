@@ -276,8 +276,8 @@ livere:
 # gitalk
 # https://github.com/gitalk/gitalk
 gitalk:
-  client_id: Iv1.59e77c8ef2e66262
-  client_secret: 4604dd236b0272e3a357d216e4e265c10e3f612d
+  client_id: 29457f5acd5cdc34e51a
+  client_secret: f40c0a7f3a99c99faf9331b132bcdae3ad351dee
   repo: Vee-blog
   owner: vee-zhang
   admin: vee-zhang
