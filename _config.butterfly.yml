@@ -278,7 +278,7 @@ livere:
 gitalk:
   client_id: 29457f5acd5cdc34e51a
   client_secret: f40c0a7f3a99c99faf9331b132bcdae3ad351dee
-  repo: Vee-blog
+  repo: comments
   owner: vee-zhang
   admin: vee-zhang
   language: zh-CN # en, zh-CN, zh-TW, es-ES, fr, ru
