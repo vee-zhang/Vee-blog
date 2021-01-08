@@ -278,7 +278,7 @@ livere:
 gitalk:
   client_id: Iv1.59e77c8ef2e66262
   client_secret: 4604dd236b0272e3a357d216e4e265c10e3f612d
-  repo: https://github.com/vee-zhang/comments.git
+  repo: Vee-blog
   owner: vee-zhang
   admin: vee-zhang
   language: zh-CN # en, zh-CN, zh-TW, es-ES, fr, ru
