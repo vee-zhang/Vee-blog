@@ -86,29 +86,32 @@ new TypeResolver() {
 
 比如创建一个starWarsSchema.graphqls:
 
+>这货是星战迷，日了，好多电影里自创的名词。幸亏前阵子看了《曼达洛人》，要不然都翻译不了这破官文。
+
 ```sdl
 schema {
     query: QueryType
 }
 
 type QueryType {
-    hero(episode: Episode): Character
-    human(id : String) : Human
-    droid(id: ID!): Droid
+    hero(episode: Episode): Character //英雄
+    human(id : String) : Human  //人类
+    droid(id: ID!): Droid   //德鲁伊
 }
 
-
+//BGM枚举
 enum Episode {
-    NEWHOPE
-    EMPIRE
-    JEDI
+    NEWHOPE //新希望军
+    EMPIRE  //帝国军
+    JEDI    //绝地武士
 }
 
+//角色接口
 interface Character {
     id: ID!
     name: String!
     friends: [Character]
-    appearsIn: [Episode]!
+    appearsIn: [Episode]! //出现的时候播放对应的BGM
 }
 
 type Human implements Character {
@@ -116,7 +119,7 @@ type Human implements Character {
     name: String!
     friends: [Character]
     appearsIn: [Episode]!
-    homePlanet: String
+    homePlanet: String  //母星
 }
 
 type Droid implements Character {
@@ -124,7 +127,7 @@ type Droid implements Character {
     name: String!
     friends: [Character]
     appearsIn: [Episode]!
-    primaryFunction: String
+    primaryFunction: String //超能力
 }
 ```
 
@@ -132,7 +135,7 @@ type Droid implements Character {
 
 `runtimeWiring`必须包含`DataFetcher`、`TypeResolver`和自定义的`Scalar`。
 
-你可以用下面的建造者模式去创建报文：
+你可以用下面的建造者模式+lambda表达式去创建报文：
 
 ```java
  RuntimeWiring buildRuntimeWiring() {
@@ -248,7 +251,7 @@ GraphQLCodeRegistry codeRegistry = newCodeRegistry()
         .build();
 ```
 
-## Graphql支持的类型
+## GraphQl支持的类型
 
 - Scalar——标量
 - Object——对象
@@ -287,9 +290,10 @@ graphql-java支持下面几种标量：
 SDL Example:
 
 ```sdl
+//Simpson应该是卡通片《辛普森一家》中的一类怪物
 type SimpsonCharacter {
     name: String
-    mainCharacter: Boolean
+    mainCharacter: Boolean //是否是主角
 }
 ```
 
@@ -317,6 +321,7 @@ Interfaces 是类型的抽象定义，哇塞！
 SDL Example:
 
 ```sdl
+//滑稽角色
 interface ComicCharacter {
     name: String;
 }
@@ -352,6 +357,8 @@ type Dog {
 
 union Pet = Cat | Dog
 ```
+
+>我擦，《猫狗大战》
 
 Java Example:
 
@@ -444,11 +451,13 @@ GraphQLObjectType person = newObject()
 
 当schema通过SDL创建时，不需要对递归类型做特殊处理，递归已经自动完成了。
 
+>所以你就可以不给出个SDL的例子吗，作者？
+
 ## Schema SDL 的模块化
 
 一个巨大的schema文件是不方便浏览的（我想起了操哥写过的300行的函数和嵌套了7层的if）。我们可以通过两种技术使之**模块化**。
 
-NO.1 在逻辑单元中合并多个Schema SDL文件。
+NO.1 在逻辑单元(java代码)中合并多个Schema SDL文件。
 
 ```java
 SchemaParser schemaParser = new SchemaParser();
@@ -468,7 +477,7 @@ typeRegistry.merge(schemaParser.parse(schemaFile3));
 GraphQLSchema graphQLSchema = schemaGenerator.makeExecutableSchema(typeRegistry, buildRuntimeWiring());
 ```
 
-Graphql SDL的类型系统针对多模块具备了另一个构造函数，你可以使用`type extensions`去把额外的field和insterfaces添加到类型中。
+NO.2 Graphql SDL的类型系统针对多模块具备了另一个构造函数，你可以使用`type extensions`去把额外的field和insterfaces添加到类型中。
 
 想象你开始的时候写了这么个type：
 
@@ -551,4 +560,8 @@ subscription foo {
 
 ## 后记
 
-终于翻译完了，文彩比较查，所以翻译的有点累。下一篇准备翻译这个`Subscription`，看看它的订阅到底是怎么回事。当然在此之前，需要对本篇翻译二次回顾，消化吸收。所以下一篇翻译不知道什么时候能搞出来了。
+终于翻译完了，作者文彩比较渣，所以翻译的有点累。下一篇准备翻译这个`Subscription`，看看它的订阅到底是怎么回事。当然在此之前，需要对本篇翻译二次回顾，消化吸收。所以下一篇翻译不知道什么时候能搞出来了。
+
+---
+
+翻译完之后的第一次校稿，发现单纯阅读这个Schema篇根本理解不了。原因是按照demo跑完入门代码后，并没有好好阅读理解逻辑，然后中间因为来活了，中断了学习和翻译，特么尴尬了。下一篇还是从quick start开始吧。
