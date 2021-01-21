@@ -52,6 +52,8 @@ dependencies {
         .build();
     ```
 
+
+
 ## DataFetcher and TypeResolver
 
 `DataFetcher`用来向field提供数据，每一个`field`都包含一个DataFetcher,默认采用`PropertyDataFetcher`。
@@ -219,4 +221,334 @@ RuntimeWiring buildDynamicRuntimeWiring() {
 
 当schema生成时，`DataFetcher`和`TypeResolver`可以在类型创建时提供：
 
-来活了，未完待续。。。
+```java
+DataFetcher<Foo> fooDataFetcher = new DataFetcher<Foo>(){
+
+    @Override
+    public Foo get(DataFetchingEnvironment environment) {
+        // environment.getSource() is the value of the surrounding
+        // object. In this case described by objectType
+        Foo value = perhapsFromDatabase(); // Perhaps getting from a DB or whatever
+        return value;
+    }
+};
+
+GraphQLObjectType objectType = newObject()
+        .name("ObjectType")
+        .field(newFieldDefinition()
+                .name("foo")
+                .type(GraphQLString)
+        )
+        .build();
+
+GraphQLCodeRegistry codeRegistry = newCodeRegistry()
+        .dataFetcher(
+                coordinates("ObjectType", "foo"),
+                fooDataFetcher)
+        .build();
+```
+
+## Graphql支持的类型
+
+- Scalar——标量
+- Object——对象
+- Interface——接口
+- Union——联合
+- InputObject——输入对象
+- Enum——枚举
+
+### Scalar
+
+graphql-java支持下面几种标量：
+
+#### 标准标量：
+
+- GraphQLString
+- GraphQLBoolean
+- GraphQLInt
+- GraphQLFloat
+- GraphQLID
+
+#### 扩展标量：
+
+- GraphQLLong
+- GraphQLShort
+- GraphQLByte
+- GraphQLFloat(怎么重复了？)
+- GraphQLBigDecimal
+- GraphQLBigInteger
+
+**注意：你的客户端可能不能理解扩展标量的语意，比如把Java中的long(最大值26^3-1)匹配给JavaScript的Number类型(最大值2^53 - 1)可能会出问题。
+
+>这里用了两个may be，我觉得身为一个官文，这样写是不对的。会就是会，may be什么鬼。
+
+### Object
+
+SDL Example:
+
+```sdl
+type SimpsonCharacter {
+    name: String
+    mainCharacter: Boolean
+}
+```
+
+Java Example:
+
+```java
+GraphQLObjectType simpsonCharacter = newObject()
+    .name("SimpsonCharacter")
+    .description("A Simpson character")
+    .field(newFieldDefinition()
+            .name("name")
+            .description("The name of the character.")
+            .type(GraphQLString))
+    .field(newFieldDefinition()
+            .name("mainCharacter")
+            .description("One of the main Simpson characters?")
+            .type(GraphQLBoolean))
+    .build();
+```
+
+### Interface
+
+Interfaces 是类型的抽象定义，哇塞！
+
+SDL Example:
+
+```sdl
+interface ComicCharacter {
+    name: String;
+}
+```
+
+Java Example:
+
+```java
+GraphQLInterfaceType comicCharacter = newInterface()
+    .name("ComicCharacter")
+    .description("An abstract comic character.")
+    .field(newFieldDefinition()
+            .name("name")
+            .description("The name of the character.")
+            .type(GraphQLString))
+    .build();
+```
+
+### Union
+
+SDL Example:
+
+```sdl
+type Cat {
+    name: String;
+    lives: Int;
+}
+
+type Dog {
+    name: String;
+    bonesOwned: int;
+}
+
+union Pet = Cat | Dog
+```
+
+Java Example:
+
+```java
+TypeResolver typeResolver = new TypeResolver() {
+    @Override
+    public GraphQLObjectType getType(TypeResolutionEnvironment env) {
+        if (env.getObject() instanceof Cat) {
+            return CatType;
+        }
+        if (env.getObject() instanceof Dog) {
+            return DogType;
+        }
+        return null;
+    }
+};
+GraphQLUnionType PetType = newUnionType()
+        .name("Pet")
+        .possibleType(CatType)
+        .possibleType(DogType)
+        .build();
+
+GraphQLCodeRegistry codeRegistry = newCodeRegistry()
+        .typeResolver("Pet", typeResolver)
+        .build();
+```
+
+### Enum
+
+SDL Example:
+
+```sdl
+enum Color {
+    RED
+    GREEN
+    BLUE
+}
+```
+
+Java Example:
+
+```java
+GraphQLEnumType colorEnum = newEnum()
+    .name("Color")
+    .description("Supported colors.")
+    .value("RED")
+    .value("GREEN")
+    .value("BLUE")
+    .build();
+```
+
+### ObjectInputType
+
+SDL Example:
+
+```sdl
+input Character {
+    name: String
+}
+```
+
+Java Example:
+
+```java
+GraphQLInputObjectType inputObjectType = newInputObject()
+    .name("inputObjectType")
+    .field(newInputObjectField()
+            .name("field")
+            .type(GraphQLString))
+    .build();
+```
+
+## 类型关系和递归
+
+GraphQL支持递归（哇塞！）：比如一个`Person`类内部含有一个`List<Friend>`，我们可以声明一个类`graphql-java`并持有一个`GraphQLTypeReference`类型的属性。当schema创建时，`GraphQLTypeReference`会被实际的类型替换掉。(答不对题，文彩太差了)。
+
+例如：
+
+```java
+GraphQLObjectType person = newObject()
+    .name("Person")
+    .field(newFieldDefinition()
+            .name("friends")
+            .type(GraphQLList
+            .list(GraphQLTypeReference.typeRef("Person"))
+            )
+        )
+        .build();
+```
+
+当schema通过SDL创建时，不需要对递归类型做特殊处理，递归已经自动完成了。
+
+## Schema SDL 的模块化
+
+一个巨大的schema文件是不方便浏览的（我想起了操哥写过的300行的函数和嵌套了7层的if）。我们可以通过两种技术使之**模块化**。
+
+NO.1 在逻辑单元中合并多个Schema SDL文件。
+
+```java
+SchemaParser schemaParser = new SchemaParser();
+SchemaGenerator schemaGenerator = new SchemaGenerator();
+
+File schemaFile1 = loadSchema("starWarsSchemaPart1.graphqls");
+File schemaFile2 = loadSchema("starWarsSchemaPart2.graphqls");
+File schemaFile3 = loadSchema("starWarsSchemaPart3.graphqls");
+
+TypeDefinitionRegistry typeRegistry = new TypeDefinitionRegistry();
+
+// each registry is merged into the main registry
+typeRegistry.merge(schemaParser.parse(schemaFile1));
+typeRegistry.merge(schemaParser.parse(schemaFile2));
+typeRegistry.merge(schemaParser.parse(schemaFile3));
+
+GraphQLSchema graphQLSchema = schemaGenerator.makeExecutableSchema(typeRegistry, buildRuntimeWiring());
+```
+
+Graphql SDL的类型系统针对多模块具备了另一个构造函数，你可以使用`type extensions`去把额外的field和insterfaces添加到类型中。
+
+想象你开始的时候写了这么个type：
+
+```sdl
+type Human {
+    id: ID!
+    name: String!
+}
+```
+
+在另一部分文件中可以通过extend这个type来添加更多的图形。
+
+```sdl
+extend type Human implements Character {
+    id: ID!
+    name: String!
+    friends: [Character]
+    appearsIn: [Episode]!
+}
+```
+
+你可以添加更多文件，它们最终会被整合到一起（不允许重复定义字段）。
+
+```sdl
+extend type Human {
+    homePlanet: String
+}
+```
+
+最终当所有type的继承者汇集到一起时，在运行时中type会变成这个样子：
+
+```sdl
+type Human implements Character {
+    id: ID!
+    name: String!
+    friends: [Character]
+    appearsIn: [Episode]!
+    homePlanet: String
+}
+```
+
+这在顶级中很有用，你可以使用继承来向顶级的schema「query」中添加新的字段。团队开发中可以采用这种形式来向所有的query默认提供顶级query。
+
+```sdl
+schema {
+    query: CombinedQueryFromMultipleTeams
+}
+
+type CombinedQueryFromMultipleTeams {
+    createdTimestamp: String
+}
+
+# maybe the invoicing system team puts in this set of attributes
+extend type CombinedQueryFromMultipleTeams {
+    invoicing: Invoicing
+}
+
+# and the billing system team puts in this set of attributes
+extend type CombinedQueryFromMultipleTeams {
+    billing: Billing
+}
+
+# and so and so forth
+extend type CombinedQueryFromMultipleTeams {
+    auditing: Auditing
+}
+```
+
+## 订阅支持(哇塞！)
+
+订阅允许你跑个query，并且持续监听这个query返回对象的变化。（这个牛逼了，但是有可能是靠长链接维持的，如果是的话开销就有点大了）
+
+```sdl
+subscription foo {
+    # normal graphql query
+}
+```
+
+具体请查看[Subscriptions](https://www.graphql-java.com/documentation/v16/subscriptions)。
+
+## 后记
+
+终于翻译完了，文彩比较查，所以翻译的有点累。下一篇准备翻译这个`Subscription`，看看它的订阅到底是怎么回事。当然在此之前，需要对本篇翻译二次回顾，消化吸收。所以下一篇翻译不知道什么时候能搞出来了。
