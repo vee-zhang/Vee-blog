@@ -2,28 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
-    <loc>https://vee-zhang.github.io/Vee-blog/2021/01/19/GraphQl-Java(%E4%B8%80)Schema/</loc>
-    
-    <lastmod>2021-01-23</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>https://vee-zhang.github.io/Vee-blog/2021/01/12/%E5%AF%B9SpringGateway-Security-OAuth2-0%E7%9A%84%E8%AE%A4%E8%AF%86/</loc>
-    
-    <lastmod>2021-01-23</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>https://vee-zhang.github.io/Vee-blog/2021/01/07/%E5%BC%80%E7%AF%87%E7%AC%AC%E4%B8%80%E7%AB%A0/</loc>
-    
-    <lastmod>2021-01-23</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>https://vee-zhang.github.io/Vee-blog/2021/01/06/%E6%90%AD%E5%BB%BApub-dev%E7%A7%81%E6%9C%8D%E5%8F%8A%E4%B8%8A%E4%BC%A0package/</loc>
+    <loc>https://vee-zhang.github.io/Vee-blog/2021/01/23/GraphQL-Java0/</loc>
     
     <lastmod>2021-01-23</lastmod>
     
@@ -58,7 +37,28 @@
   </url>
   
   <url>
-    <loc>https://vee-zhang.github.io/Vee-blog/2021/01/23/GraphQL-Java0/</loc>
+    <loc>https://vee-zhang.github.io/Vee-blog/2021/01/19/GraphQl-Java(%E4%B8%80)Schema/</loc>
+    
+    <lastmod>2021-01-23</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>https://vee-zhang.github.io/Vee-blog/2021/01/12/%E5%AF%B9SpringGateway-Security-OAuth2-0%E7%9A%84%E8%AE%A4%E8%AF%86/</loc>
+    
+    <lastmod>2021-01-23</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>https://vee-zhang.github.io/Vee-blog/2021/01/07/%E5%BC%80%E7%AF%87%E7%AC%AC%E4%B8%80%E7%AB%A0/</loc>
+    
+    <lastmod>2021-01-23</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>https://vee-zhang.github.io/Vee-blog/2021/01/06/%E6%90%AD%E5%BB%BApub-dev%E7%A7%81%E6%9C%8D%E5%8F%8A%E4%B8%8A%E4%BC%A0package/</loc>
     
     <lastmod>2021-01-23</lastmod>
     
