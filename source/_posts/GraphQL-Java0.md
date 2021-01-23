@@ -227,6 +227,7 @@ type Book {
 
 直接rest_client了：
 
+```
 POST http://localhost:9000/graphql
 Content-Type: application/json
 X-REQUEST-TYPE: GraphQL
@@ -242,3 +243,4 @@ X-REQUEST-TYPE: GraphQL
         }
     }
 }
+```
