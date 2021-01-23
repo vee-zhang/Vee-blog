@@ -1,0 +1,255 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GraphQL-Java(零)从SpringBoot服务端开始 | Vee's blog</title><meta name="keywords" content="GraphQL"><meta name="author" content="Vee Zhang"><meta name="copyright" content="Vee Zhang"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta http-equiv="Cache-Control" content="no-transform"><meta http-equiv="Cache-Control" content="no-siteapp"><meta name="description" content="引入依赖1234567dependencies &amp;#123;    implementation &amp;#x27;com.graphql-java:graphql-java:11.0&amp;#x27; &#x2F;&#x2F; NEW    implementation &amp;#x27;com.graphql-java:graphql-java-spring-boot-starter-webmvc:1.0&amp;#x27; &#x2F;&#x2F; NEW">
+<meta property="og:type" content="article">
+<meta property="og:title" content="GraphQL-Java(零)从SpringBoot服务端开始">
+<meta property="og:url" content="https://vee-zhang.github.io/Vee-blog/2021/01/23/GraphQL-Java0/index.html">
+<meta property="og:site_name" content="Vee&#39;s blog">
+<meta property="og:description" content="引入依赖1234567dependencies &amp;#123;    implementation &amp;#x27;com.graphql-java:graphql-java:11.0&amp;#x27; &#x2F;&#x2F; NEW    implementation &amp;#x27;com.graphql-java:graphql-java-spring-boot-starter-webmvc:1.0&amp;#x27; &#x2F;&#x2F; NEW">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1/img/default.jpg">
+<meta property="article:published_time" content="2021-01-23T08:38:19.000Z">
+<meta property="article:modified_time" content="2021-01-23T12:53:14.133Z">
+<meta property="article:author" content="Vee Zhang">
+<meta property="article:tag" content="GraphQL">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1/img/default.jpg"><link rel="shortcut icon" href="/Vee-blog/img/favicon.png"><link rel="canonical" href="https://vee-zhang.github.io/Vee-blog/2021/01/23/GraphQL-Java0/"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/Vee-blog/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" media="print" onload="this.media='all'"><script>var GLOBAL_CONFIG = { 
+  root: '/Vee-blog/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  date_suffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  source: {
+    jQuery: 'https://cdn.jsdelivr.net/npm/jquery@latest/dist/jquery.min.js',
+    justifiedGallery: {
+      js: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/js/jquery.justifiedGallery.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/justifiedGallery/dist/css/justifiedGallery.min.css'
+    },
+    fancybox: {
+      js: 'https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.css'
+    }
+  },
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isanchor: false
+};
+
+var saveToLocal = {
+  set: function setWithExpiry(key, value, ttl) {
+    const now = new Date()
+    const expiryDay = ttl * 86400000
+    const item = {
+      value: value,
+      expiry: now.getTime() + expiryDay,
+    }
+    localStorage.setItem(key, JSON.stringify(item))
+  },
+
+  get: function getWithExpiry(key) {
+    const itemStr = localStorage.getItem(key)
+
+    if (!itemStr) {
+      return undefined
+    }
+    const item = JSON.parse(itemStr)
+    const now = new Date()
+
+    if (now.getTime() > item.expiry) {
+      localStorage.removeItem(key)
+      return undefined
+    }
+    return item.value
+  }
+}
+
+// https://stackoverflow.com/questions/16839698/jquery-getscript-alternative-in-native-javascript
+const getScript = url => new Promise((resolve, reject) => {
+  const script = document.createElement('script')
+  script.src = url
+  script.async = true
+  script.onerror = reject
+  script.onload = script.onreadystatechange = function() {
+    const loadState = this.readyState
+    if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+    script.onload = script.onreadystatechange = null
+    resolve()
+  }
+  document.head.appendChild(script)
+})</script><script id="config_change">var GLOBAL_CONFIG_SITE = { 
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2021-01-23 20:53:14'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(function () {  window.activateDarkMode = function () {
+    document.documentElement.setAttribute('data-theme', 'dark')
+    if (document.querySelector('meta[name="theme-color"]') !== null) {
+      document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+    }
+  }
+  window.activateLightMode = function () {
+    document.documentElement.setAttribute('data-theme', 'light')
+   if (document.querySelector('meta[name="theme-color"]') !== null) {
+      document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+    }
+  }
+  const autoChangeMode = 'false'
+  const t = saveToLocal.get('theme')
+  if (autoChangeMode === '1') {
+    const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches
+    const isLightMode = window.matchMedia('(prefers-color-scheme: light)').matches
+    const isNotSpecified = window.matchMedia('(prefers-color-scheme: no-preference)').matches
+    const hasNoSupport = !isDarkMode && !isLightMode && !isNotSpecified
+    if (t === undefined) {
+      if (isLightMode) activateLightMode()
+      else if (isDarkMode) activateDarkMode()
+      else if (isNotSpecified || hasNoSupport) {
+        const now = new Date()
+        const hour = now.getHours()
+        const isNight = hour <= 6 || hour >= 18
+        isNight ? activateDarkMode() : activateLightMode()
+      }
+      window.matchMedia('(prefers-color-scheme: dark)').addListener(function (e) {
+        if (saveToLocal.get('theme') === undefined) {
+          e.matches ? activateDarkMode() : activateLightMode()
+        }
+      })
+    } else if (t === 'light') activateLightMode()
+    else activateDarkMode()
+  } else if (autoChangeMode === '2') {
+    const now = new Date()
+    const hour = now.getHours()
+    const isNight = hour <= 6 || hour >= 18
+    if (t === undefined) isNight ? activateDarkMode() : activateLightMode()
+    else if (t === 'light') activateLightMode()
+    else activateDarkMode()
+  } else {
+    if (t === 'dark') activateDarkMode()
+    else if (t === 'light') activateLightMode()
+  }const asideStatus = saveToLocal.get('aside-status')
+if (asideStatus !== undefined) {
+   if (asideStatus === 'hide') {
+     document.documentElement.classList.add('hide-aside')
+   } else {
+     document.documentElement.classList.remove('hide-aside')
+   }
+}})()</script><meta name="generator" content="Hexo 5.3.0"><link rel="alternate" href="/Vee-blog/atom.xml" title="Vee's blog" type="application/atom+xml">
+</head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="author-avatar"><img class="avatar-img" src="/Vee-blog/null" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="site-data"><div class="data-item is-center"><div class="data-item-link"><a href="/Vee-blog/archives/"><div class="headline">文章</div><div class="length-num">5</div></a></div></div><div class="data-item is-center"><div class="data-item-link"><a href="/Vee-blog/tags/"><div class="headline">标签</div><div class="length-num">9</div></a></div></div><div class="data-item is-center"><div class="data-item-link"><a href="/Vee-blog/categories/"><div class="headline">分类</div><div class="length-num">1</div></a></div></div></div><hr/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/Vee-blog/"><i class="fa-fw fas fa-home"></i><span> Home</span></a></div><div class="menus_item"><a class="site-page" href="/Vee-blog/archives/"><i class="fa-fw fas fa-archive"></i><span> Archives</span></a></div><div class="menus_item"><a class="site-page" href="/Vee-blog/tags/"><i class="fa-fw fas fa-tags"></i><span> Tags</span></a></div><div class="menus_item"><a class="site-page" href="/Vee-blog/categories/"><i class="fa-fw fas fa-folder-open"></i><span> Categories</span></a></div><div class="menus_item"><a class="site-page" href="/Vee-blog/about/"><i class="fa-fw fas fa-heart"></i><span> About</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url(https://cdn.jsdelivr.net/npm/butterfly-extsrc@1/img/default.jpg)"><nav id="nav"><span id="blog_name"><a id="site-name" href="/Vee-blog/">Vee's blog</a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/Vee-blog/"><i class="fa-fw fas fa-home"></i><span> Home</span></a></div><div class="menus_item"><a class="site-page" href="/Vee-blog/archives/"><i class="fa-fw fas fa-archive"></i><span> Archives</span></a></div><div class="menus_item"><a class="site-page" href="/Vee-blog/tags/"><i class="fa-fw fas fa-tags"></i><span> Tags</span></a></div><div class="menus_item"><a class="site-page" href="/Vee-blog/categories/"><i class="fa-fw fas fa-folder-open"></i><span> Categories</span></a></div><div class="menus_item"><a class="site-page" href="/Vee-blog/about/"><i class="fa-fw fas fa-heart"></i><span> About</span></a></div></div><div id="toggle-menu"><a class="site-page"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">GraphQL-Java(零)从SpringBoot服务端开始</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2021-01-23T08:38:19.000Z" title="发表于 2021-01-23 16:38:19">2021-01-23</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2021-01-23T12:53:14.133Z" title="更新于 2021-01-23 20:53:14">2021-01-23</time></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">阅读量:</span><span id="busuanzi_value_page_pv"></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><h2 id="引入依赖"><a href="#引入依赖" class="headerlink" title="引入依赖"></a>引入依赖</h2><figure class="highlight groovy"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">dependencies &#123;</span><br><span class="line">    implementation <span class="string">&#x27;com.graphql-java:graphql-java:11.0&#x27;</span> <span class="comment">// NEW</span></span><br><span class="line">    implementation <span class="string">&#x27;com.graphql-java:graphql-java-spring-boot-starter-webmvc:1.0&#x27;</span> <span class="comment">// NEW</span></span><br><span class="line">    implementation <span class="string">&#x27;com.google.guava:guava:26.0-jre&#x27;</span> <span class="comment">// NEW</span></span><br><span class="line">    implementation <span class="string">&#x27;org.springframework.boot:spring-boot-starter-web&#x27;</span></span><br><span class="line">    testImplementation <span class="string">&#x27;org.springframework.boot:spring-boot-starter-test&#x27;</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="定义Schema"><a href="#定义Schema" class="headerlink" title="定义Schema"></a>定义Schema</h2><p>在<code>src/main/resources</code>中创建<code>schema.graphqls</code>如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">type Query &#123;</span><br><span class="line">  bookById(id: ID): Book </span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">type Book &#123;</span><br><span class="line">  id: ID</span><br><span class="line">  name: String</span><br><span class="line">  pageCount: Int</span><br><span class="line">  author: Author</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">type Author &#123;</span><br><span class="line">  id: ID</span><br><span class="line">  firstName: String</span><br><span class="line">  lastName: String</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里定义了一个顶级字段：<code>bookById</code>，它用来返回特定ID的book；</p>
+<p>并且定义了一个Boo类，其中包含<code>id</code>,<code>name</code>,<code>pageCount</code>,<code>author</code>。<code>author</code>是另一个类型。</p>
+<h2 id="解析Schema"><a href="#解析Schema" class="headerlink" title="解析Schema"></a>解析Schema</h2><p>在项目中创建一个<code>GraphQLProvider</code>类型的java文件，用来创建GraphQL实例：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">GraphQLProvider</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> GraphQL graphQL;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Bean</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> GraphQL <span class="title">graphQL</span><span class="params">()</span> </span>&#123; </span><br><span class="line">        <span class="keyword">return</span> graphQL;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 用Guava Resources读取资源文件</span></span><br><span class="line"><span class="comment">     * </span></span><br><span class="line"><span class="comment">     * <span class="doctag">@throws</span> IOException</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@PostConstruct</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">init</span><span class="params">()</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">        URL url = Resources.getResource(<span class="string">&quot;schema.graphqls&quot;</span>);</span><br><span class="line">        String sdl = Resources.toString(url, Charsets.UTF_8);</span><br><span class="line">        GraphQLSchema graphQLSchema = buildSchema(sdl);</span><br><span class="line">        <span class="keyword">this</span>.graphQL = GraphQL.newGraphQL(graphQLSchema).build();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> GraphQLSchema <span class="title">buildSchema</span><span class="params">(String sdl)</span> </span>&#123;</span><br><span class="line">      <span class="comment">// <span class="doctag">TODO:</span> we will create the schema here later </span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>我们通过google的Guava <code>Resources</code>来读取Schema.graphql文件，并且通过<code>@Bean</code>注解把GraphQL实例暴露出去，GraphQL Java Spring adapter会使用这个GraphQL实例来把schema匹配到`/graphql’路径，以后通过这个路径调用所有接口。</p>
+<p>接下来实现buildSchema方法：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Autowired</span></span><br><span class="line">GraphQLDataFetchers graphQLDataFetchers;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment">* 构建调用模型</span></span><br><span class="line"><span class="comment">* <span class="doctag">@param</span> sdl 从资源文件获取到的sdl语言内容</span></span><br><span class="line"><span class="comment">* <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"><span class="function"><span class="keyword">private</span> GraphQLSchema <span class="title">buildSchema</span><span class="params">(String sdl)</span> </span>&#123;</span><br><span class="line">    TypeDefinitionRegistry typeRegistry = <span class="keyword">new</span> SchemaParser().parse(sdl);</span><br><span class="line">    RuntimeWiring runtimeWiring = buildWiring();</span><br><span class="line">    SchemaGenerator schemaGenerator = <span class="keyword">new</span> SchemaGenerator();</span><br><span class="line">    <span class="keyword">return</span> schemaGenerator.makeExecutableSchema(typeRegistry, runtimeWiring);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">private</span> RuntimeWiring <span class="title">buildWiring</span><span class="params">()</span> </span>&#123;</span><br><span class="line">    <span class="keyword">return</span> RuntimeWiring.newRuntimeWiring()</span><br><span class="line">            .type(newTypeWiring(<span class="string">&quot;Query&quot;</span>)</span><br><span class="line">                    .dataFetcher(<span class="string">&quot;bookById&quot;</span>, graphQLDataFetchers.getBookByIdDataFetcher()))</span><br><span class="line">            .type(newTypeWiring(<span class="string">&quot;Book&quot;</span>)</span><br><span class="line">                    .dataFetcher(<span class="string">&quot;author&quot;</span>, graphQLDataFetchers.getAuthorDataFetcher()))</span><br><span class="line">            .build();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p><code>TypeDefinitionRegistry</code> 是SDL转换成的java对象。<code>RuntimeWiring</code>才是真正的重点，主要作用是注册了两个<code>DataFetchers</code>：</p>
+<ul>
+<li>一个用来根据ID查book；</li>
+<li>一个用来获取特定book的作者。</li>
+</ul>
+<p>仔细看代码会发现，在构建<code>RuntimeWiring</code>时用到的字符串参数，全都是我们在SDL中定义好的type，所以这里的作用是告诉GraphQL Adapter怎么去根据SDL拿对应的数据。</p>
+<h2 id="DataFetchers"><a href="#DataFetchers" class="headerlink" title="DataFetchers"></a>DataFetchers</h2><p>DataFetcher是一个接口，用来根据SDL中的field来获取对应的数据，所以它内部只有一个抽象方法：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">DataFetcher</span>&lt;<span class="title">T</span>&gt; </span>&#123;</span><br><span class="line">    <span class="function">T <span class="title">get</span><span class="params">(DataFetchingEnvironment dataFetchingEnvironment)</span> <span class="keyword">throws</span> Exception</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>这里要注意，SDL中每一个field都对应一个<code>DataFetcher</code>，如果没有特别指定一个<code>DataFetcher</code>，默认会采用<code>PropertyDataFetcher</code>。所以在上面生成<code>RuntimeWiring</code>的代码中，并没有对author注册dataFetcher，而是让他直接采用了默认的<code>PropertyDataFetcher</code>。</p>
+<p>接下来我们就来实现<code>DataFetcher</code>了，创建一个<code>GraphQLDataFetchers</code>类：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">GraphQLDataFetchers</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> List&lt;Map&lt;String, String&gt;&gt; books = Arrays.asList(</span><br><span class="line">            ImmutableMap.of(<span class="string">&quot;id&quot;</span>, <span class="string">&quot;book-1&quot;</span>,</span><br><span class="line">                    <span class="string">&quot;name&quot;</span>, <span class="string">&quot;Harry Potter and the Philosopher&#x27;s Stone&quot;</span>,</span><br><span class="line">                    <span class="string">&quot;pageCount&quot;</span>, <span class="string">&quot;223&quot;</span>,</span><br><span class="line">                    <span class="string">&quot;authorId&quot;</span>, <span class="string">&quot;author-1&quot;</span>),</span><br><span class="line">            ImmutableMap.of(<span class="string">&quot;id&quot;</span>, <span class="string">&quot;book-2&quot;</span>,</span><br><span class="line">                    <span class="string">&quot;name&quot;</span>, <span class="string">&quot;Moby Dick&quot;</span>,</span><br><span class="line">                    <span class="string">&quot;pageCount&quot;</span>, <span class="string">&quot;635&quot;</span>,</span><br><span class="line">                    <span class="string">&quot;authorId&quot;</span>, <span class="string">&quot;author-2&quot;</span>),</span><br><span class="line">            ImmutableMap.of(<span class="string">&quot;id&quot;</span>, <span class="string">&quot;book-3&quot;</span>,</span><br><span class="line">                    <span class="string">&quot;name&quot;</span>, <span class="string">&quot;Interview with the vampire&quot;</span>,</span><br><span class="line">                    <span class="string">&quot;pageCount&quot;</span>, <span class="string">&quot;371&quot;</span>,</span><br><span class="line">                    <span class="string">&quot;authorId&quot;</span>, <span class="string">&quot;author-3&quot;</span>)</span><br><span class="line">    );</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> List&lt;Map&lt;String, String&gt;&gt; authors = Arrays.asList(</span><br><span class="line">            ImmutableMap.of(<span class="string">&quot;id&quot;</span>, <span class="string">&quot;author-1&quot;</span>,</span><br><span class="line">                    <span class="string">&quot;firstName&quot;</span>, <span class="string">&quot;Joanne&quot;</span>,</span><br><span class="line">                    <span class="string">&quot;lastName&quot;</span>, <span class="string">&quot;Rowling&quot;</span>),</span><br><span class="line">            ImmutableMap.of(<span class="string">&quot;id&quot;</span>, <span class="string">&quot;author-2&quot;</span>,</span><br><span class="line">                    <span class="string">&quot;firstName&quot;</span>, <span class="string">&quot;Herman&quot;</span>,</span><br><span class="line">                    <span class="string">&quot;lastName&quot;</span>, <span class="string">&quot;Melville&quot;</span>),</span><br><span class="line">            ImmutableMap.of(<span class="string">&quot;id&quot;</span>, <span class="string">&quot;author-3&quot;</span>,</span><br><span class="line">                    <span class="string">&quot;firstName&quot;</span>, <span class="string">&quot;Anne&quot;</span>,</span><br><span class="line">                    <span class="string">&quot;lastName&quot;</span>, <span class="string">&quot;Rice&quot;</span>)</span><br><span class="line">    );</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> DataFetcher <span class="title">getBookByIdDataFetcher</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> dataFetchingEnvironment -&gt; &#123;</span><br><span class="line">            String bookId = dataFetchingEnvironment.getArgument(<span class="string">&quot;id&quot;</span>);</span><br><span class="line">            <span class="keyword">return</span> books</span><br><span class="line">                    .stream()</span><br><span class="line">                    .filter(book -&gt; book.get(<span class="string">&quot;id&quot;</span>).equals(bookId))</span><br><span class="line">                    .findFirst()</span><br><span class="line">                    .orElse(<span class="keyword">null</span>);</span><br><span class="line">        &#125;;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> DataFetcher <span class="title">getAuthorDataFetcher</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> dataFetchingEnvironment -&gt; &#123;</span><br><span class="line">            Map&lt;String,String&gt; book = dataFetchingEnvironment.getSource();</span><br><span class="line">            String authorId = book.get(<span class="string">&quot;authorId&quot;</span>);</span><br><span class="line">            <span class="keyword">return</span> authors</span><br><span class="line">                    .stream()</span><br><span class="line">                    .filter(author -&gt; author.get(<span class="string">&quot;id&quot;</span>).equals(authorId))</span><br><span class="line">                    .findFirst()</span><br><span class="line">                    .orElse(<span class="keyword">null</span>);</span><br><span class="line">        &#125;;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>全都是mock数据，亮点是采用了java的新特性，通过流式调用来处理集合，并且还有lamda表达式的书写。</p>
+<p>上面的代码中，我们可以看到，<code>DataFetcher</code>是<code>DataFetchingEnvironment</code>，三个查询方法也都是返回<code>DataFetchingEnvironment</code>的实例，其中需要关注的是：</p>
+<ul>
+<li><code>getArgument(&quot;id&quot;)</code>用来获取参数。</li>
+<li><code>getSource()</code>用来获取对象。</li>
+</ul>
+<p>根据我们在SDL中的定义：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">type Query &#123;</span><br><span class="line">  bookById(id: ID): Book </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>查询book时需要传递一个id，所以这个id怎么获取呢？通过<code>dataFetchingEnvironment.getArgument(&quot;id&quot;)</code>就能获取到。</p>
+<p>然后根据SDL中定义：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">type Book &#123;</span><br><span class="line">  id: ID!</span><br><span class="line">  name: String</span><br><span class="line">  pageCount: Int</span><br><span class="line">  author: Author</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>查询特定book的作者，那么需要一个特定的book实例，通过<code>getSource()</code>可以获取到父级的book实例。</p>
+<p>在GraphQL中，<strong>每一个field的DataFetcher是从上到下，从父到子被调用的，并且父级的结果可以从子级的<code>DataFetcherEnvironment</code>的<code>getSource()</code>方法中取到</strong>。</p>
+<h2 id="Default-DataFetchers"><a href="#Default-DataFetchers" class="headerlink" title="Default DataFetchers"></a>Default DataFetchers</h2><p>前面说过，如果不给field指定一个DataFetcher，那么将默认使用<code>PropertyDataFetcher</code>。在这个demo里，意味着<code>Book.id</code>, <code>Book.name</code>, <code>Book.pageCount</code>, <code>Author.id</code>, <code>Author.firstName</code>, <code>Author.lastName</code>都对应着一个<code>PropertyDataFetcher</code>。</p>
+<p><code>PropertyDataFetcher</code>会通过多种方式从Java对象中找到对应的属性，如果是<code>java.util.Map</code>，就通过Key去找。这里要求field的名字与key一致。如果不一致就会返回null。（这里我翻译的不太对味，但是意思还是很明确的）。</p>
+<h2 id="Try-API"><a href="#Try-API" class="headerlink" title="Try API"></a>Try API</h2><p>直接rest_client了：</p>
+<p>POST <a target="_blank" rel="noopener" href="http://localhost:9000/graphql">http://localhost:9000/graphql</a><br>Content-Type: application/json<br>X-REQUEST-TYPE: GraphQL</p>
+<p>{<br>    bookById(id:”book-1”){<br>        id<br>        name<br>        pageCount<br>        author {<br>            firstName<br>            lastName<br>        }<br>    }<br>}</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="mailto:undefined">Vee Zhang</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="https://vee-zhang.github.io/Vee-blog/2021/01/23/GraphQL-Java0/">https://vee-zhang.github.io/Vee-blog/2021/01/23/GraphQL-Java0/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://vee-zhang.github.io/Vee-blog" target="_blank">Vee's blog</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/Vee-blog/tags/GraphQL/">GraphQL</a></div><div class="post_share"><div class="social-share" data-image="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1/img/default.jpg" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/social-share.js/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/social-share.js/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><div class="next-post pull-full"><a href="/Vee-blog/2021/01/19/GraphQl-Java(%E4%B8%80)Schema/"><img class="next-cover" src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1/img/default.jpg" onerror="onerror=null;src='/Vee-blog/img/404.jpg'" alt="cover of next post"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">GraphQl-Java(一)Schema</div></div></a></div></nav><hr/><div id="post-comment"><div class="comment-head"><div class="comment-headline"><i class="fas fa-comments fa-fw"></i><span> 评论</span></div></div><div class="comment-wrap"><div><div id="gitalk-container"></div></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="card-info-avatar is-center"><img class="avatar-img" src="/Vee-blog/null" onerror="this.onerror=null;this.src='/Vee-blog/img/friend_404.gif'" alt="avatar"/><div class="author-info__name">Vee Zhang</div><div class="author-info__description">i'm an Android programer.</div></div><div class="card-info-data"><div class="card-info-data-item is-center"><a href="/Vee-blog/archives/"><div class="headline">文章</div><div class="length-num">5</div></a></div><div class="card-info-data-item is-center"><a href="/Vee-blog/tags/"><div class="headline">标签</div><div class="length-num">9</div></a></div><div class="card-info-data-item is-center"><a href="/Vee-blog/categories/"><div class="headline">分类</div><div class="length-num">1</div></a></div></div><a class="button--animated" id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/vee-zhang"><i class="fab fa-github"></i><span>Follow Me</span></a><div class="card-info-social-icons is-center"><a class="social-icon" href="mailto:william198824@foxmail.com" target="_blank" title="Email"><i class="fas fa-envelope"></i></a></div></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn card-announcement-animation"></i><span>公告</span></div><div class="announcement_content">This is my Blog</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%BC%95%E5%85%A5%E4%BE%9D%E8%B5%96"><span class="toc-number">1.</span> <span class="toc-text">引入依赖</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%9A%E4%B9%89Schema"><span class="toc-number">2.</span> <span class="toc-text">定义Schema</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E8%A7%A3%E6%9E%90Schema"><span class="toc-number">3.</span> <span class="toc-text">解析Schema</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#DataFetchers"><span class="toc-number">4.</span> <span class="toc-text">DataFetchers</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Default-DataFetchers"><span class="toc-number">5.</span> <span class="toc-text">Default DataFetchers</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Try-API"><span class="toc-number">6.</span> <span class="toc-text">Try API</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/Vee-blog/2021/01/23/GraphQL-Java0/" title="GraphQL-Java(零)从SpringBoot服务端开始"><img src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1/img/default.jpg" onerror="this.onerror=null;this.src='/Vee-blog/img/404.jpg'" alt="GraphQL-Java(零)从SpringBoot服务端开始"/></a><div class="content"><a class="title" href="/Vee-blog/2021/01/23/GraphQL-Java0/" title="GraphQL-Java(零)从SpringBoot服务端开始">GraphQL-Java(零)从SpringBoot服务端开始</a><time datetime="2021-01-23T08:38:19.000Z" title="发表于 2021-01-23 16:38:19">2021-01-23</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/Vee-blog/2021/01/19/GraphQl-Java(%E4%B8%80)Schema/" title="GraphQl-Java(一)Schema"><img src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1/img/default.jpg" onerror="this.onerror=null;this.src='/Vee-blog/img/404.jpg'" alt="GraphQl-Java(一)Schema"/></a><div class="content"><a class="title" href="/Vee-blog/2021/01/19/GraphQl-Java(%E4%B8%80)Schema/" title="GraphQl-Java(一)Schema">GraphQl-Java(一)Schema</a><time datetime="2021-01-19T02:13:53.000Z" title="发表于 2021-01-19 10:13:53">2021-01-19</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/Vee-blog/2021/01/12/%E5%AF%B9SpringGateway-Security-OAuth2-0%E7%9A%84%E8%AE%A4%E8%AF%86/" title="对SpringGateway+Security+OAuth2.0的认识"><img src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1/img/default.jpg" onerror="this.onerror=null;this.src='/Vee-blog/img/404.jpg'" alt="对SpringGateway+Security+OAuth2.0的认识"/></a><div class="content"><a class="title" href="/Vee-blog/2021/01/12/%E5%AF%B9SpringGateway-Security-OAuth2-0%E7%9A%84%E8%AE%A4%E8%AF%86/" title="对SpringGateway+Security+OAuth2.0的认识">对SpringGateway+Security+OAuth2.0的认识</a><time datetime="2021-01-12T09:49:10.000Z" title="发表于 2021-01-12 17:49:10">2021-01-12</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/Vee-blog/2021/01/07/%E5%BC%80%E7%AF%87%E7%AC%AC%E4%B8%80%E7%AB%A0/" title="开篇第一章"><img src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1/img/default.jpg" onerror="this.onerror=null;this.src='/Vee-blog/img/404.jpg'" alt="开篇第一章"/></a><div class="content"><a class="title" href="/Vee-blog/2021/01/07/%E5%BC%80%E7%AF%87%E7%AC%AC%E4%B8%80%E7%AB%A0/" title="开篇第一章">开篇第一章</a><time datetime="2021-01-07T08:30:36.000Z" title="发表于 2021-01-07 16:30:36">2021-01-07</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/Vee-blog/2021/01/06/%E6%90%AD%E5%BB%BApub-dev%E7%A7%81%E6%9C%8D%E5%8F%8A%E4%B8%8A%E4%BC%A0package/" title="搭建pub.dev私服及上传package"><img src="https://cdn.jsdelivr.net/npm/butterfly-extsrc@1/img/default.jpg" onerror="this.onerror=null;this.src='/Vee-blog/img/404.jpg'" alt="搭建pub.dev私服及上传package"/></a><div class="content"><a class="title" href="/Vee-blog/2021/01/06/%E6%90%AD%E5%BB%BApub-dev%E7%A7%81%E6%9C%8D%E5%8F%8A%E4%B8%8A%E4%BC%A0package/" title="搭建pub.dev私服及上传package">搭建pub.dev私服及上传package</a><time datetime="2021-01-06T08:57:01.000Z" title="发表于 2021-01-06 16:57:01">2021-01-06</time></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2020 - 2021 By Vee Zhang</div><div class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><a id="to_comment" href="#post-comment" title="直达评论"><i class="fas fa-comments"></i></a><button id="go-up" type="button" title="回到顶部"><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/Vee-blog/js/utils.js"></script><script src="/Vee-blog/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/instant.page/instantpage.min.js" type="module"></script><div class="js-pjax"><script>function addGitalkSource () {
+  const ele = document.createElement('link')
+  ele.rel = 'stylesheet'
+  ele.href= 'https://cdn.jsdelivr.net/npm/gitalk/dist/gitalk.min.css'
+  document.getElementsByTagName('head')[0].appendChild(ele)
+}
+
+function loadGitalk () {
+  function initGitalk () {
+    var gitalk = new Gitalk({
+      clientID: '29457f5acd5cdc34e51a',
+      clientSecret: 'f40c0a7f3a99c99faf9331b132bcdae3ad351dee',
+      repo: 'comments',
+      owner: 'vee-zhang',
+      admin: ['vee-zhang'],
+      id: '4a2962bc473c44a45f5843679d9ccbd5',
+      language: 'zh-CN',
+      perPage: 10,
+      distractionFreeMode: false,
+      pagerDirection: 'last',
+      createIssueManually: false,
+      updateCountCallback: commentCount
+    })
+    gitalk.render('gitalk-container')
+  }
+
+  if (typeof Gitalk === 'function') initGitalk()
+  else {
+    addGitalkSource()
+    getScript('https://cdn.jsdelivr.net/npm/gitalk@latest/dist/gitalk.min.js').then(initGitalk)
+  }
+}
+
+function commentCount(n){
+  let isCommentCount = document.querySelector('#post-meta .gitalk-comment-count')
+  if (isCommentCount) {
+    isCommentCount.innerHTML= n
+  }
+}
+
+if ('Gitalk' === 'Gitalk' || !false) {
+  if (false) btf.loadComment(document.getElementById('gitalk-container'), loadGitalk)
+  else loadGitalk()
+} else {
+  function loadOtherComment () {
+    loadGitalk()
+  }
+}</script><script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></div></body></html>
