@@ -217,7 +217,7 @@ type Book {
 
 在GraphQL中，**每一个field的DataFetcher是从上到下，从父到子被调用的，并且父级的结果可以从子级的`DataFetcherEnvironment`的`getSource()`方法中取到**。
 
-## Default DataFetchers
+### Default DataFetchers
 
 前面说过，如果不给field指定一个DataFetcher，那么将默认使用`PropertyDataFetcher`。在这个demo里，意味着`Book.id`, `Book.name`, `Book.pageCount`, `Author.id`, `Author.firstName`, `Author.lastName`都对应着一个`PropertyDataFetcher`。
 
