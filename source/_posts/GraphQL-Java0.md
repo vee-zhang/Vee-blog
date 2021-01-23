@@ -244,3 +244,27 @@ X-REQUEST-TYPE: GraphQL
     }
 }
 ```
+
+返回结果：
+
+```
+HTTP/1.1 200 
+Content-Type: application/json;charset=UTF-8
+Transfer-Encoding: chunked
+Date: Sat, 23 Jan 2021 13:35:24 GMT
+Connection: close
+
+{
+  "data": {
+    "bookById": {
+      "id": "book-1",
+      "name": "Harry Potter and the Philosopher's Stone",
+      "pageCount": 223,
+      "author": {
+        "firstName": "Joanne",
+        "lastName": "Rowling"
+      }
+    }
+  }
+}
+```
