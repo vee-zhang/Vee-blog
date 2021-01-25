@@ -1,7 +1,7 @@
 ---
 title: GraphQl-Java(一)Schema
 date: 2021-01-19 10:13:53
-tags: GraphQl
+tags: GraphQL
 description: 本文基于GraphQl-java:v1.6版本官方文档中文翻译。
 ---
 
