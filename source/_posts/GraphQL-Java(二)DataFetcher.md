@@ -1,7 +1,7 @@
 ---
 title: GraphQL-Java(二)DataFetching
 date: 2021-01-23 22:28:28
-tags:
+tags: GraphQL
 ---
 
 ## GraphQL如何获取数据
