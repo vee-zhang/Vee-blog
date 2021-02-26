@@ -2,6 +2,20 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>https://vee-zhang.github.io/Vee-blog/tags/index.html</loc>
+    
+    <lastmod>2021-02-26</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>https://vee-zhang.github.io/Vee-blog/talk/index.html</loc>
+    
+    <lastmod>2021-02-26</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>https://vee-zhang.github.io/Vee-blog/2021/02/26/Fragment%E5%9C%A8Activity%E4%B8%AD%E7%9A%84%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F/</loc>
     
     <lastmod>2021-02-26</lastmod>
@@ -73,20 +87,6 @@
   
   <url>
     <loc>https://vee-zhang.github.io/Vee-blog/categories/index.html</loc>
-    
-    <lastmod>2021-02-26</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>https://vee-zhang.github.io/Vee-blog/tags/index.html</loc>
-    
-    <lastmod>2021-02-26</lastmod>
-    
-  </url>
-  
-  <url>
-    <loc>https://vee-zhang.github.io/Vee-blog/talk/index.html</loc>
     
     <lastmod>2021-02-26</lastmod>
     
