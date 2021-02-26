@@ -4,6 +4,24 @@ date: 2021-02-26 11:17:35
 tags:  android,生命周期,fragment,activity
 ---
 
+## 流程图
+
+```yuml
+// {type:activity}
+// {generate:true}
+
+(start)[activity启动]->(A: super.onCreate)->(A: setContentView)->(A: super.onStart)->(A: super.onResume)
+(A: setContentView)->(F: onAttach)->(F: onCreate)->(F: onCreateView)->(F: onViewCreated)->(A: super.onStart)
+(A: super.onStart)->(F: onActivityCreated)->(F: onStart)->(A: super.onResume)
+(A: super.onResume)-><a>[之后]->(F: onResume)->|b|
+(A: super.onResume)-><b>
+<b>[进入后台]->(A: super.onPause)->(F: onPause)->(A: super.onStop)
+(A: super.onPause)->(A: super.onStop)->(F: onStop)
+(A: super.onStop)-><c>[恢复]->(A: super.onRestart)->(A: super.onStart)
+<c>[销毁]->(A: super.onDestory)->(F: onDestoryView)->(F: onDestory)->(F: onDetach)->(end)
+
+```
+
 ## 启动
 
 ```
@@ -28,9 +46,11 @@ D: FirstActivity's super.onResume: 后
 D: FirstFragment's onResume: 
 ```
 
-fragment的`onAttach`，`onCreate`，`onCreateView`，`onViewCreated`是在Activity的`setContentView`时执行的。
+fragment的`onAttach`，`onCreate`，`onCreateView`，`onViewCreated`是在Activity的`setContentView`中执行的。
 
 想一下就知道，Activity的`setContentView`的目的是从xml中加载View，而我把fragment写在了xml里面。
+
+>这里有个小插曲，事实证明，Activity的`super.onCreate`可以写在`setContentView`之后，但是xml中存在fragment时就会报错。
 
 fragment的`onActivityCreated`、`onStart`是在Activity的`super.onStart`方法中执行。
 
