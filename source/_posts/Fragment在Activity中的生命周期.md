@@ -6,6 +6,7 @@ tags:  android,生命周期,fragment,activity
 
 ## 启动
 
+```
 D: FirstActivity's super.onCreate: 前
 D: FirstActivity's super.onCreate: 后
 D: FirstActivity's setContentView: 前
@@ -25,7 +26,7 @@ D: FirstActivity's super.onStart: 后
 D: FirstActivity's super.onResume: 前
 D: FirstActivity's super.onResume: 后
 D: FirstFragment's onResume: 
-
+```
 
 fragment的`onAttach`，`onCreate`，`onCreateView`，`onViewCreated`是在Activity的`setContentView`时执行的。
 
