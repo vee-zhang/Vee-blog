@@ -1,0 +1,6 @@
+// {type:state}
+// {generate:true}
+
+(start)[启动]->(Activity.setContentView)
+(Activity.setContentView)->(Activity.onStart)->(Activity.onResume)
+(back)->
