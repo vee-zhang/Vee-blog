@@ -6,21 +6,7 @@ tags:  android,生命周期,fragment,activity
 
 ## 流程图
 
-```yuml
-// {type:activity}
-// {generate:true}
-
-(start)[activity启动]->(A: super.onCreate)->(A: setContentView)->(A: super.onStart)->(A: super.onResume)
-(A: setContentView)->(F: onAttach)->(F: onCreate)->(F: onCreateView)->(F: onViewCreated)->(A: super.onStart)
-(A: super.onStart)->(F: onActivityCreated)->(F: onStart)->(A: super.onResume)
-(A: super.onResume)-><a>[之后]->(F: onResume)->|b|
-(A: super.onResume)-><b>
-<b>[进入后台]->(A: super.onPause)->(F: onPause)->(A: super.onStop)
-(A: super.onPause)->(A: super.onStop)->(F: onStop)
-(A: super.onStop)-><c>[恢复]->(A: super.onRestart)->(A: super.onStart)
-<c>[销毁]->(A: super.onDestory)->(F: onDestoryView)->(F: onDestory)->(F: onDetach)->(end)
-
-```
+![生命周期](/source/resource/生命周期.svg)
 
 ## 启动
 
