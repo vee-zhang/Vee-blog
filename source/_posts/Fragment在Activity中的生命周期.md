@@ -131,6 +131,8 @@ fragment的`onStop`在Activity的`super.onStop`中执行。
 
 fragment的`onDestroyView`、`onDestroy`、`onDetach`在Activity的`super.onDestroy`中执行。
 
+**注意**    fragment的`onResume`是在Activity的`onResume`之后执行的！！！
+
 ## 退入后台
 
 ```
