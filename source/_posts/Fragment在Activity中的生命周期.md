@@ -8,6 +8,7 @@ tags:  android,生命周期,fragment,activity
 
 ![生命周期](/source/resource/生命周期.svg)
 
+ss
 ## 启动
 
 ```
