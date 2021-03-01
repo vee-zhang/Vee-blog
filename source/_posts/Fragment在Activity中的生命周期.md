@@ -4,6 +4,14 @@ date: 2021-02-26 11:17:35
 tags:  android,生命周期,fragment,activity
 ---
 
+## 记忆方式
+
+Fragment的`onAttach`,`onCreate`,`onCreateView`,`onViewCreated`在附加到Activity时执行，如`setContentView`或者`add`,`replace`时。
+
+Fragment的`onResume`是在Activity的`onResume`执行完之后才会执行，而其他生命周期都在Activity的`super.onXXX`内执行。
+
+跳转时，前一个页面的生命周期走到`onPause`时暂停，等待后一个页面的生命周期走到`onResume`之后，再继续执行`onStop`；同理，返回时后一个页面走到`onPause`时暂停，前一个页面`onRestart`,`onStart`,`onResume`之后，再继续执行剩下的`onStop`,`onDestory`。
+
 ## 流程图
 
 ![生命周期](/source/resource/生命周期.svg)
