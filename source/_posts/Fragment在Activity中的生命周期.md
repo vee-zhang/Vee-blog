@@ -77,6 +77,8 @@ fragment的`onPause`是在Activity的`super.onPause`中执行。
 
 然后上一个fragment的`onStop`在Activity的`onStop`中执行。
 
+**注意**，前一个Activity执行到`onPause`，然后第二个Activity生命周期完成后，前一个Activity才会执行`onStop`。
+
 ### 返回
 
 ```
