@@ -16,10 +16,9 @@ Fragment的`onResume`是在Activity的`onResume`执行完之后才会执行，�
 
 ![生命周期](/source/resource/生命周期.svg)
 
-ss
 ## 启动
 
-```
+```log
 D: FirstActivity's super.onCreate: 前
 D: FirstActivity's super.onCreate: 后
 D: FirstActivity's setContentView: 前
@@ -53,7 +52,7 @@ fragment的`onResume`是在activity的`super.onResume`之后执行。
 
 ## 跳转
 
-```
+```log
 D: FirstActivity's super.onPause: 前
 D: FirstFragment's onPause: 
 D: FirstActivity's super.onPause: 后
@@ -89,7 +88,7 @@ fragment的`onPause`是在Activity的`super.onPause`中执行。
 
 ### 返回
 
-```
+```log
 D: SecondActivity's super.onPause: 前
 D: SecondFragment's onPause: 
 D: SecondActivity's super.onPause: 后
@@ -128,11 +127,11 @@ fragment的`onStop`在Activity的`super.onStop`中执行。
 
 fragment的`onDestroyView`、`onDestroy`、`onDetach`在Activity的`super.onDestroy`中执行。
 
-**注意**    fragment的`onResume`是在Activity的`onResume`之后执行的！！！
+**注意**fragment的`onResume`是在Activity的`onResume`之后执行的！！！
 
 ## 退入后台
 
-```
+```log
 D: FirstActivity's super.onPause: 前
 D: FirstFragment's onPause: 
 D: FirstActivity's super.onPause: 后
@@ -143,7 +142,7 @@ D: FirstActivity's super.onStop: 后
 
 ## 回到前台
 
-```
+```log
 D: FirstActivity's super.onRestart: 前
 D: FirstActivity's super.onRestart: 后
 D: FirstActivity's super.onStart: 前
@@ -156,7 +155,7 @@ D: FirstFragment's onResume:
 
 ## 退出
 
-```
+```log
 D: FirstActivity's super.onPause: 前
 D: FirstFragment's onPause: 
 D: FirstActivity's super.onPause: 后
