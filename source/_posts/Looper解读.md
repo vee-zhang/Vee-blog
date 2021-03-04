@@ -34,7 +34,7 @@ private Looper(boolean quitAllowed) {
 
 `Looper.prepare()`方法只是为了初始化`ThreadLocal`。
 
-之前了解过，`ThreadLocal`可以包证多线程访问共享变量的线程安全问题。他不像`synchronized`靠阻塞实现线程安全，而是通过对变量拷贝的方式，使每一个线程都操作自己的拷贝，实现线程安全，所以效率要优于`synchronized`。[详情看这里](https://www.jianshu.com/p/6fc3bba12f38)
+之前了解过，`ThreadLocal`可以包证多线程访问共享变量的线程安全问题。他不像`synchronized`靠阻塞实现线程安全，而是通过对变量拷贝的方式，使每一个线程都操作自己的拷贝，实现线程安全，所以效率要优于`synchronized`。[详情看这里](https://www.jianshu.com/p/6fc3bba12f38)和[这里](http://www.jasongj.com/java/threadlocal/)
 
 由于在Android中每个线程都有个Looper对象，所以采用ThreadLocal来保存和获取当前线程的Looper对象。
 
@@ -77,3 +77,7 @@ public static void loop() {
         msg.recycleUnchecked();
     }
 ```
+
+## 主线程中为何不ANR也不会内存泄露
+
+我们都知道线程一旦运行完毕就会回收，那么主线程中没有执行任何动作时为何不会回收呢？原因就是因为looper在死循环，阻塞了主线程的回收，那么相应的一旦不再死循环，程序也就退出了。Android同时利用Looper的死循环，发送消息，比如通知View重绘等等。
