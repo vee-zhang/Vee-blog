@@ -27,7 +27,7 @@ public final Message obtainMessage(){
 
 Handler的`obtainMessage()`其实还是调用`Message.obtain()`方法，所以直接调用后者反而效率更高。
 
-## sendMessage 
+## sendMessage
 
 ```java
 public final boolean sendMessage(@NonNull Message msg) {
