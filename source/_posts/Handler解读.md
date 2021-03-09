@@ -136,4 +136,3 @@ private static void handleCallback(Message message) {
 ```
 
 直接在当前线程去跑Runnable类型的callback。
-
