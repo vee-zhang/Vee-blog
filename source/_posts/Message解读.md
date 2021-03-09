@@ -191,7 +191,7 @@ void recycleUnchecked() {
 
 这个方法的作用是把当前的Message对象回滚到初始状态，并且标记为「正在使用」。把当前的Message赋值给了`next`，并且`sPoolSize++`,表示多了个闲置。
 
-`MAX_POOL_SIZE`常量的值为50，那么就是**一个App最多能有50个message**。
+`MAX_POOL_SIZE`常量的值为50，那么就是**一个App最多能有50个闲置的message**。
 
 ## 总结
 
