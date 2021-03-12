@@ -35,7 +35,7 @@ private Looper(boolean quitAllowed) {
 
 之前了解过，`ThreadLocal`可以包证多线程访问共享变量的线程安全问题。他不像`synchronized`靠阻塞实现线程安全，而是通过对变量拷贝的方式，使每一个线程都操作自己的拷贝，实现线程安全，所以效率要优于`synchronized`。[详情看这里](https://www.jianshu.com/p/6fc3bba12f38)和[这里](http://www.jasongj.com/java/threadlocal/)
 
-由于在Android中每个线程都有个Looper对象，所以采用ThreadLocal来保存和获取当前线程的Looper对象。
+ThreadLocal在此处的使用是为了保证每个线程都只能分配到一个Looper对象，多次调用`Looper.prepary()`方法会抛出异常。而且在其他线程去操作这个Looper对象可以保证线程安全，比如在主线程中调用`mHandler.getLooper().quitSafely()`来终止子线程的Looper对象的`loop()`循环。
 
 ## loop
 
