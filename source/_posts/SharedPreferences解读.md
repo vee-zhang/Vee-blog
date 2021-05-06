@@ -711,3 +711,5 @@ mcr.setDiskWriteResult(false, false);
 - 用XmlUtil执行写入，写入成功后删除备份返回结果
 - 写入失败则清理文件，保留备份
 
+
+
