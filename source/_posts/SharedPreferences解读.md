@@ -218,8 +218,10 @@ static File makeBackupFile(File prefsFile) {
 @UnsupportedAppUsage
 private void startLoadFromDisk() {
     synchronized (mLock) {
+		// 变更标志位
         mLoaded = false;
     }
+	//开启子线程从硬盘加载文件
     new Thread("SharedPreferencesImpl-load") {
         public void run() {
             loadFromDisk();
@@ -230,6 +232,7 @@ private void startLoadFromDisk() {
 
 private void loadFromDisk() {
     synchronized (mLock) {
+		//dlc机制
         if (mLoaded) {
             return;
         }
@@ -270,7 +273,9 @@ private void loadFromDisk() {
         thrown = t;
     }
 
+	//注意这个锁
     synchronized (mLock) {
+		//变更标志位
         mLoaded = true;
         mThrowable = thrown;
 
@@ -295,29 +300,19 @@ private void loadFromDisk() {
 }
 ```
 
-### 阶段总结
-
-`getSharedPreferences(String name,int mode)`方法用来初始化SP，主要就是创建xml文件，进而使用文件和mode创建`getSharedPreferencesImpl`对象并且返回。而在创建`getSharedPreferencesImpl`时就会开启一个子线程从硬盘解析xml文件到内存中，同时创建一个以.bat为后缀的备份文件。
-
-当系统版本小于3.0时，在创建`getSharedPreferencesImpl`之后就把xml文件内容通过poll方式直接读取到`getSharedPreferencesImpl`中。
-
-## Editor
-
-### 获取
-按照SP的使用流程，下一步就是要获取到`Editor`对象了，我们通过`Editor`提供的`putXXX()`方法来向SP中写入数据。
-
-`Editor`是一个接口，提供了一些列的put虚方法。接口是不能直接调用的，所以我们调用的其实是他的实现类——`EditorImpl`，它是`getSharedPreferencesImpl`的**内部匿名类**，由于内部匿名类持有外部类的引用，那么它就可以访问外层类的成员！
+#### getXXX()
 
 ```java
 @Override
-public Editor edit() {
-
-	//todo 以后源码会取消这个同步阻塞
+@Nullable
+public String getString(String key, @Nullable String defValue) {
+	//注意这个锁
 	synchronized (mLock) {
+		//持续等待
 		awaitLoadedLocked();
+		String v = (String)mMap.get(key);
+		return v != null ? v : defValue;
 	}
-	//创建EditorImpl
-	return new EditorImpl();
 }
 
 @GuardedBy("mLock")
@@ -325,7 +320,6 @@ private void awaitLoadedLocked() {
 	if (!mLoaded) {
 		BlockGuard.getThreadPolicy().onReadFromDisk();
 	}
-	//循环锁
 	while (!mLoaded) {
 		try {
 			mLock.wait();
@@ -338,7 +332,41 @@ private void awaitLoadedLocked() {
 }
 ```
 
-每次调用`sp.editor()`方法都会循环`wait`锁，也就是说，当并发获取editor时是**同步阻塞**的。（以后会	取消阻塞）,然后创建并且返回一个`EditorImpl`对象，我们就可以使用它愉快的进行put操作了。
+这里要注意的就是，`getXXX()`方法与构造方法中读取文件的地方是共享同一把锁`mLock`，从而使这两个方法存在互斥关系。如果文件很大，那么程序运行`sharedPreferenceImpl`构造方法的耗时就会比较长，此时调用`getXXX()`方法因为互斥锁的关系，就会持续等待，一直到构造方法执行完毕之后才能返回结果，导致主线程被阻塞，出现UI卡顿，甚至出现ANR。
+
+### 阶段总结
+
+`getSharedPreferences(String name,int mode)`方法用来初始化SP，主要就是创建xml文件，进而使用文件和mode创建`getSharedPreferencesImpl`对象并且返回。
+
+而在创建`getSharedPreferencesImpl`时就会开启一个子线程从硬盘解析xml文件到内存中，同时创建一个以.bat为后缀的备份文件。
+
+如果在构造方法读取文件期间调用了`getXXX()`方法，后者会持续等待前者完成之后才执行，会造成UI卡顿甚至ANR。
+
+当开启**多进程模式**时，每次调用`getSharedPreferences()`时都会重新读取文件。因为SP不知道文件是否已被更新，所以只能每次重新读取。
+
+
+## Editor
+
+### 获取
+按照SP的使用流程，下一步就是要获取到`Editor`对象了，我们通过`Editor`提供的`putXXX()`方法来向SP中写入数据。
+
+`Editor`是一个接口，提供了一些列的put虚方法。接口是不能直接调用的，所以我们调用的其实是他的实现类——`EditorImpl`，它是`getSharedPreferencesImpl`的**内部匿名类**，由于内部匿名类持有外部类的引用，那么它就可以访问外层类的成员！
+
+```java
+@Override
+public Editor edit() {
+
+	//又看到了这把锁
+	synchronized (mLock) {
+		//持续等待
+		awaitLoadedLocked();
+	}
+	//创建EditorImpl
+	return new EditorImpl();
+}
+```
+
+每次调用`sp.editor()`方法，也会共享`mLock`这把锁，那么同样也存在上面说的问题，会出现卡顿。
 
 ### EditorImpl定义和Put操作
 
@@ -367,7 +395,7 @@ private void awaitLoadedLocked() {
 ......
 ```
 
-代码很简单，put操作其实就是对HashMap缓存进行写入，同时为了保证线程安全，加了锁。
+代码很简单，put操作其实就是对HashMap缓存进行写入，同时为了保证线程安全，加了锁。每个PUT操作都是互斥关系。改动并没有即时提交到硬盘文件，也没有提交到真正的缓存mMap，而是提交到了editor内部的缓存**mModified**里面了。
 
 ### remove
 
@@ -375,7 +403,7 @@ private void awaitLoadedLocked() {
 @Override
 public Editor remove(String key) {
 	synchronized (mEditorLock) {
-		//为何不设置为null&#63;
+		//为何不设置为null?;
 		mModified.put(key, this);
 		return this;
 	}
@@ -398,109 +426,109 @@ public Editor clear() {
 }
 ```
 
-`clear`方法也是非常奇怪，只是设置了一下标志位，并没有做其他的事情？难道这就完事了？
+`clear`方法也是非常奇怪，只是设置了一下标志位，并没有做其他的事情。
 
-### commit
+#### 小结
+
+怎样解决卡顿问题？
+
+1. 尽量把大文件拆分成多个小文件。
+2. 尽量提前初始化sp。
+3. 然后尽量不要在初始化之后马上就用sp。
+
+### commit()
 
 ```java
 @Override
 public boolean commit() {
-	long startTime = 0;
 
+	//提交到内存
 	MemoryCommitResult mcr = commitToMemory();
-	
+	//子线程写入文件
 	SharedPreferencesImpl.this.enqueueDiskWrite(mcr, null);
 	try {
+		//计数锁等待
 		mcr.writtenToDiskLatch.await();
 	} catch (InterruptedException e) {
 		return false;
 	} finally {
-		if (DEBUG) {
-			Log.d(TAG, mFile.getName() + ":" + mcr.memoryStateGeneration
-					+ " committed after " + (System.currentTimeMillis() - startTime)
-					+ " ms");
-		}
+
 	}
+
+	//通知监视器
 	notifyListeners(mcr);
+
+	//返回读写结果true or false
 	return mcr.writeToDiskResult;
 }
 ```
+
+commit方法通过计数锁阻塞了当前线程，等待子线程中的写操作完成，才会被唤醒，充分体现了线程协作的思想。
 
 ### apply()
 
 ```java
 @Override
 public void apply() {
-	final long startTime = System.currentTimeMillis();
 
+	//提交到内存
 	final MemoryCommitResult mcr = commitToMemory();
+
+	//其实并不起作用，迷之操作
 	final Runnable awaitCommit = new Runnable() {
 			@Override
 			public void run() {
 				try {
+					//计数锁开始等待
 					mcr.writtenToDiskLatch.await();
 				} catch (InterruptedException ignored) {
-				}
-
-				if (DEBUG && mcr.wasWritten) {
-					Log.d(TAG, mFile.getName() + ":" + mcr.memoryStateGeneration
-							+ " applied after " + (System.currentTimeMillis() - startTime)
-							+ " ms");
 				}
 			}
 		};
 
+	//添加生命周期回调
 	QueuedWork.addFinisher(awaitCommit);
 
 	Runnable postWriteRunnable = new Runnable() {
 			@Override
 			public void run() {
+
+				//利用计数锁阻塞当前线程
 				awaitCommit.run();
+				//移除生命周期回调
 				QueuedWork.removeFinisher(awaitCommit);
 			}
 		};
 
+	//子线程写入文件
 	SharedPreferencesImpl.this.enqueueDiskWrite(mcr, postWriteRunnable);
 
+	//通知监视器
 	notifyListeners(mcr);
 }
 ```
 
-### notifyListeners
+### 小结
 
-```java
-private void notifyListeners(final MemoryCommitResult mcr) {
-	if (mcr.listeners == null || (mcr.keysModified == null && !mcr.keysCleared)) {
-		return;
-	}
-	if (Looper.myLooper() == Looper.getMainLooper()) {
-	
-		//如果当前是主线程，就遍历MemoryCommitResult中listener
-		if (mcr.keysCleared && Compatibility.isChangeEnabled(CALLBACK_ON_CLEAR_CHANGE)) {
-			for (OnSharedPreferenceChangeListener listener : mcr.listeners) {
-				if (listener != null) {
-					listener.onSharedPreferenceChanged(SharedPreferencesImpl.this, null);
-				}
-			}
-		}
-		for (int i = mcr.keysModified.size() - 1; i >= 0; i--) {
-			final String key = mcr.keysModified.get(i);
-			for (OnSharedPreferenceChangeListener listener : mcr.listeners) {
-				if (listener != null) {
-					listener.onSharedPreferenceChanged(SharedPreferencesImpl.this, key);
-				}
-			}
-		}
-	} else {
-		//如果当前是子线程，就切换到主线程重新调用方法
-		ActivityThread.sMainThreadHandler.post(() -> notifyListeners(mcr));
-	}
-}
-```
+这两个方法主要干了三件事：
+
+1. 调用`commitToMemory()`方法从`mModified`提交改动到`mMap`；
+2. 调用`SharedPreferencesImpl.this.enqueueDiskWrite(mcr, null);`把改动写入文件；
+3. 调用`notifyListeners(mcr);`通知监视器。
+
+不同点在于，`commit`方法在写入文件时，通过计数锁阻塞了当前线程，那么如果在主线程调用`commit`的话，就会造成卡顿了。而`apply`方法是把计数锁放到了另一个子线程中去执行了，所以阻塞的是另一个子线程，在一般情况下对主线程没有影响。
+
+但是，当生命周期处于`handleStopService()` 、 `handlePauseActivity()` 、 `handleStopActivity()`时，会调用 `QueuedWork`的`waitToFinish()`方法，在这个方法中会遍历执行所有的`finisher`，所以如果内容很多，**`Apply`方法还是会引起ANR**。
+
+最后，`apply`方法没有返回写入的成功失败。
+
+怎么解决ANR问题？
+
+我觉得在子线程中调用commit方法应该是个不错的选择吧。
 
 ### enqueueDiskWrite
 
-首先看`SharedPreferencesImpl.this.enqueueDiskWrite(mcr, null);`干了什么：
+`commit`和`apply`两个方法都是在主线程调用了这个方法完成写入：
 
 ```java
 /**
@@ -508,7 +536,7 @@ private void notifyListeners(final MemoryCommitResult mcr) {
 **/
 private void enqueueDiskWrite(final MemoryCommitResult mcr,
                                   final Runnable postWriteRunnable) {
-	//由于传递进来的参数2是null，这里一定是true
+	//commit-true apply-false
 	final boolean isFromSyncCommit = (postWriteRunnable == null);
 
 	final Runnable writeToDiskRunnable = new Runnable() {
@@ -520,13 +548,15 @@ private void enqueueDiskWrite(final MemoryCommitResult mcr,
 				synchronized (mLock) {
 					mDiskWritesInFlight--;
 				}
+				//apply会执行
 				if (postWriteRunnable != null) {
+					//主要是为了移除Finisher
 					postWriteRunnable.run();
 				}
 			}
 		};
 
-	// 在当前线程启动Runnable进行写入
+	// commit执行
 	if (isFromSyncCommit) {
 		boolean wasEmpty = false;
 		synchronized (mLock) {
@@ -538,13 +568,109 @@ private void enqueueDiskWrite(final MemoryCommitResult mcr,
 		}
 	}
 
+	// apply执行
 	QueuedWork.queue(writeToDiskRunnable, !isFromSyncCommit);
 }
 ```
 
-在这里先定义了一个`Runnable`叫做writeToDiskRunnable ，一看名字就知道是用来异步IO写磁盘的。
+在这里先定义了一个`Runnable`叫做writeToDiskRunnable ，一看名字就知道是用来IO写磁盘的。所以其中必然有`writeToFile`方法的调用啦。由于在同一线程顺序执行，`writeToFile`方法中必然会把`mcr.writtenToDiskLatch.countDown()`，所以后面的`postWriteRunnable.run();`只是为了移除finisher，而之前的`awaitCommit`这个Runnable中的`mcr.writtenToDiskLatch.await();`并没有起什么作用。
 
-然后由于源码中调用此方法时传递的postWriteRunnable就是null，所以下面的if判断是必走的，那么就会在当前线程直接开始写入操作，这样就造成了一个结果：**阻塞了UI线程造成卡顿，并且数据量大还容易ANR**。
+我们看到，系统通过变换`mDiskWritesInFlight`尽可能把`commit`转换为`apply`去执行。
+
+`commit`在当前线程就直接`run`了，而`apply`则是提交给了`QueuedWork.queue(writeToDiskRunnable,false)`。
+
+### commitToMemory
+
+```java
+// Returns true if any changes were made
+private MemoryCommitResult commitToMemory() {
+	long memoryStateGeneration;
+	boolean keysCleared = false;
+	List<String> keysModified = null;
+	Set<OnSharedPreferenceChangeListener> listeners = null;
+	Map<String, Object> mapToWriteToDisk;
+
+	//注意这把锁
+	synchronized (SharedPreferencesImpl.this.mLock) {
+		
+		if (mDiskWritesInFlight > 0) {
+			mMap = new HashMap<String, Object>(mMap);
+		}
+
+		// 转换对象
+		mapToWriteToDisk = mMap;
+		mDiskWritesInFlight++;
+
+		//同样是转换对象
+		boolean hasListeners = mListeners.size() > 0;
+		if (hasListeners) {
+			keysModified = new ArrayList<String>();
+			listeners = new HashSet<OnSharedPreferenceChangeListener>(mListeners.keySet());
+		}
+
+		//又一把锁
+		synchronized (mEditorLock) {
+			boolean changesMade = false;
+
+			//注意这个标志位，为true说明调用过editor.clear()方法
+			if (mClear) {
+				if (!mapToWriteToDisk.isEmpty()) {
+					changesMade = true;
+					mapToWriteToDisk.clear();
+				}
+				keysCleared = true;
+				mClear = false;
+			}
+
+			//遍历拷贝
+			for (Map.Entry<String, Object> e : mModified.entrySet()) {
+				String k = e.getKey();
+				Object v = e.getValue();
+				if (v == this || v == null) {//说明被editor.remove()过了
+					if (!mapToWriteToDisk.containsKey(k)) {
+						continue;
+					}
+					mapToWriteToDisk.remove(k);
+				} else {
+					if (mapToWriteToDisk.containsKey(k)) {
+						Object existingValue = mapToWriteToDisk.get(k);
+						if (existingValue != null && existingValue.equals(v)) {//如果值没变就跳过
+							continue;
+						}
+					}
+					mapToWriteToDisk.put(k, v);
+				}
+
+				changesMade = true;
+				if (hasListeners) {
+					keysModified.add(k);
+				}
+			}
+
+			//清除editor缓存，释放内存
+			mModified.clear();
+
+			if (changesMade) {
+				mCurrentMemoryStateGeneration++;
+			}
+
+			memoryStateGeneration = mCurrentMemoryStateGeneration;
+		}
+	}
+
+	//返回结果
+	return new MemoryCommitResult(memoryStateGeneration, keysCleared, keysModified,
+			listeners, mapToWriteToDisk);
+}
+```
+
+`commitToMemory`方法顾名思义就是把`editor`的`mModified`中的值提交到`sharedferenceImpl`的`mMap`。
+
+这里加了`SharedPreferencesImpl.this.mLock`，说明多次调用`commit`或`apply`方法都会阻塞执行，而且在进行`commit`或者`apply`还没结束时就调用`getXXX()`，依然会造成卡顿。
+
+而这里出现的第二把锁`mEditorLock`是为了保证`mModified`的线程安全。
+
+
 
 #### MemoryCommitResult
 
@@ -578,6 +704,7 @@ private static class MemoryCommitResult {
 	}
 	
 	//唯一提供的方法，用来变更标记为，储存写入结果
+	//只有这里能唤醒计数锁！！！
 	void setDiskWriteResult(boolean wasWritten, boolean result) {
 		this.wasWritten = wasWritten;
 		writeToDiskResult = result;
@@ -585,6 +712,245 @@ private static class MemoryCommitResult {
 	}
 }
 ```
+
+### apply方法的QueuedWork机制
+
+```java
+/**
+ * @hide 很奇怪为啥好东西都不让我们用呢？
+ */
+public class QueuedWork {
+
+    /** Delay for delayed runnables, as big as possible but low enough to be barely perceivable */
+    private static final long DELAY = 100;
+
+    /** 我是一把锁 */
+    private static final Object sLock = new Object();
+
+    /**
+     * Used to make sure that only one thread is processing work items at a time. This means that
+     * they are processed in the order added.
+     *
+     * This is separate from {@link #sLock} as this is held the whole time while work is processed
+     * and we do not want to stall the whole class.
+     */
+    private static Object sProcessingWork = new Object();
+
+    @GuardedBy("sLock")
+    @UnsupportedAppUsage
+    private static final LinkedList<Runnable> sFinishers = new LinkedList<>();
+
+    @GuardedBy("sLock")
+    private static Handler sHandler = null;
+
+    /** Work queued via {@link #queue} */
+    @GuardedBy("sLock")
+    private static final LinkedList<Runnable> sWork = new LinkedList<>();
+
+    @GuardedBy("sLock")
+    private static boolean sCanDelay = true;
+
+
+    /**
+     * Add task
+     */
+    @UnsupportedAppUsage
+    public static void addFinisher(Runnable finisher) {
+        synchronized (sLock) {
+            sFinishers.add(finisher);
+        }
+    }
+
+    /**
+     * Remove task
+     */
+    @UnsupportedAppUsage
+    public static void removeFinisher(Runnable finisher) {
+        synchronized (sLock) {
+            sFinishers.remove(finisher);
+        }
+    }
+
+    /**
+     * 触发要立即处理的排队工作。排队的工作在异步的单独线程上处理。在执行该操作的同时，还要处理该线程上的所有修整器。可以以某种方式实施整理器，以检查排队的工作是否完成。在Activity基类的onPause（）， BroadcastReceiver的onReceive之后，Service命令处理之后等等被调用（因此，异步工作永远不会丢失）
+     */
+    public static void waitToFinish() {
+
+        boolean hadMessages = false;
+
+        Handler handler = getHandler();
+
+        synchronized (sLock) {
+
+			//解除loop
+            if (handler.hasMessages(QueuedWorkHandler.MSG_RUN)) {
+                handler.removeMessages(QueuedWorkHandler.MSG_RUN);
+            }
+
+            // We should not delay any work as this might delay the finishers
+            sCanDelay = false;
+        }
+
+		//线程使用自检
+        StrictMode.ThreadPolicy oldPolicy = StrictMode.allowThreadDiskWrites();
+        try {
+			//系统偷偷的写入了一次，而且是在**主线程**直接调用的
+            processPendingWork();
+        } finally {
+            StrictMode.setThreadPolicy(oldPolicy);
+        }
+
+		//事后检查机制，保证所有finisher都被执行
+        try {
+            while (true) {
+                Runnable finisher;
+
+                synchronized (sLock) {
+                    finisher = sFinishers.poll();
+                }
+
+				//由于在同一线程中先调用了processPendingWork()，完成写操作后就会remove调finisher，所以大多数情况会走到这里
+                if (finisher == null) {
+                    break;
+                }
+
+                finisher.run();
+            }
+        } finally {
+            sCanDelay = true;
+        }
+    }
+	//同一个方法在7.0上的实现
+	public static void waitToFinish() {
+        Runnable toFinish;
+        while ((toFinish = sPendingWorkFinishers.poll()) != null) {
+          toFinish.run();
+        }
+   }
+
+    /**
+     * 一看就懂
+     */
+    public static boolean hasPendingWork() {
+        synchronized (sLock) {
+            return !sWork.isEmpty();
+        }
+    }
+
+	/**
+     * 异步任务调度,其实就是切换到工作线程
+	 * @param shouldDelay	apply=false
+     */
+    @UnsupportedAppUsage
+    public static void queue(Runnable work, boolean shouldDelay) {
+        Handler handler = getHandler();
+
+        synchronized (sLock) {
+            sWork.add(work);
+
+            if (shouldDelay && sCanDelay) {
+                handler.sendEmptyMessageDelayed(QueuedWorkHandler.MSG_RUN, DELAY);
+            } else {
+                handler.sendEmptyMessage(QueuedWorkHandler.MSG_RUN);
+            }
+        }
+    }
+
+	/**
+	 *	每次都会启动一个HandlerThread
+     * 获取一个单例的Handler，当然这玩意的looper就是handlerThread的looper
+	 * queue方法和waitToFinish中调用
+     */
+    @UnsupportedAppUsage
+    private static Handler getHandler() {
+        synchronized (sLock) {
+            if (sHandler == null) {
+                HandlerThread handlerThread = new HandlerThread("queued-work-looper",
+                        Process.THREAD_PRIORITY_FOREGROUND);
+                handlerThread.start();
+
+                sHandler = new QueuedWorkHandler(handlerThread.getLooper());
+            }
+            return sHandler;
+        }
+    }
+
+	/**
+	 *	自定义的Handler
+	**/
+    private static class QueuedWorkHandler extends Handler {
+        static final int MSG_RUN = 1;
+
+        QueuedWorkHandler(Looper looper) {
+            super(looper);
+        }
+
+        public void handleMessage(Message msg) {
+            if (msg.what == MSG_RUN) {
+				//切换到了handlerThread所在线程
+                processPendingWork();
+            }
+        }
+    }
+
+	/**
+	*	用来处理挂起的任务，核心方法，遍历执行task，此时已切换到工作线程
+	**/
+    private static void processPendingWork() {
+
+		//这里又是一把锁
+        synchronized (sProcessingWork) {
+            LinkedList<Runnable> work;
+			//这里的锁注意一下
+            synchronized (sLock) {
+				//浅拷贝，这里的work其实是writeToDiskRunnable，包含文件的写入操作和finisher调用
+                work = (LinkedList<Runnable>) sWork.clone();
+				//释放内存
+                sWork.clear();
+				//解除loop，退出死循环
+                getHandler().removeMessages(QueuedWorkHandler.MSG_RUN);
+            }
+
+			//遍历执行task
+            if (work.size() > 0) {
+                for (Runnable w : work) {
+                    w.run();
+                }
+            }
+        }
+    }
+}
+```
+
+Activity在OnPause时会调用ActivityThread的`handleStopActivity`方法:
+
+```java
+@Override
+public void handleStopActivity(IBinder token, int configChanges,
+		PendingTransactionActions pendingActions, boolean finalStateRequest, String reason) {
+	final ActivityClientRecord r = mActivities.get(token);
+	r.activity.mConfigChangeFlags |= configChanges;
+
+	final StopInfo stopInfo = new StopInfo();
+	performStopActivityInner(r, stopInfo, true /* saveState */, finalStateRequest,
+			reason);
+
+	updateVisibility(r, false);
+
+	// 3.0及以后版本，确保所有挂起的写入全都提交到文件
+	if (!r.isPreHoneycomb()) {
+		QueuedWork.waitToFinish();
+	}
+
+	stopInfo.setActivity(r);
+	stopInfo.setState(r.state);
+	stopInfo.setPersistentState(r.persistentState);
+	pendingActions.setStopInfo(stopInfo);
+	mSomeActivitiesChanged = true;
+}
+```
+
+3.0及以后系统，当发生cresh或者Activity、broaderCaster、service生命周期发生改变时，主线程会自动调用`QueuedWork.waitToFinish()`把当前挂起的修改写入到文件系统中！！！如果没有任何修改，那么就会遍历执行所有的finisher！！！这就是`apply`方法提交也会导致ANR的秘密！！！
 
 #### 最重要的方法writeToFile
 
@@ -597,11 +963,10 @@ if (fileExists) {
 
 	// 如果硬盘状态版本号低于内存状态版本号，那么只需要写入
 	if (mDiskStateGeneration < mcr.memoryStateGeneration) {
-		if (isFromSyncCommit) {
+		if (isFromSyncCommit) {//commit
 			needsWrite = true;//变更标志位
 		} else {
-			synchronized (mLock) {
-				//commit方法直接来这里
+			synchronized (mLock) {//apply
 				//无需保持中间状态。只需等待最新状态保持不变即可。
 				if (mCurrentMemoryStateGeneration == mcr.memoryStateGeneration) {
 					needsWrite = true;//变更标志位
@@ -631,10 +996,6 @@ if (fileExists) {
 	}
 }
 ```
-
-
-##### 文件不存在
-
 
 ##### 真正的写入
 
@@ -713,3 +1074,53 @@ mcr.setDiskWriteResult(false, false);
 
 
 
+### notifyListeners
+
+```java
+private void notifyListeners(final MemoryCommitResult mcr) {
+	if (mcr.listeners == null || (mcr.keysModified == null && !mcr.keysCleared)) {
+		return;
+	}
+	if (Looper.myLooper() == Looper.getMainLooper()) {
+	
+		//如果当前是主线程，就遍历MemoryCommitResult中listener
+		if (mcr.keysCleared && Compatibility.isChangeEnabled(CALLBACK_ON_CLEAR_CHANGE)) {
+			for (OnSharedPreferenceChangeListener listener : mcr.listeners) {
+				if (listener != null) {
+					listener.onSharedPreferenceChanged(SharedPreferencesImpl.this, null);
+				}
+			}
+		}
+		for (int i = mcr.keysModified.size() - 1; i >= 0; i--) {
+			final String key = mcr.keysModified.get(i);
+			for (OnSharedPreferenceChangeListener listener : mcr.listeners) {
+				if (listener != null) {
+					listener.onSharedPreferenceChanged(SharedPreferencesImpl.this, key);
+				}
+			}
+		}
+	} else {
+		//如果当前是子线程，就切换到主线程重新调用方法
+		ActivityThread.sMainThreadHandler.post(() -> notifyListeners(mcr));
+	}
+}
+```
+
+看了这个方法，我才知道SP还可以注册监听。
+
+```java
+val sp = getSharedPreferences("我擦", Context.MODE_PRIVATE)
+        
+val listener = object: SharedPreferences.OnSharedPreferenceChangeListener{
+
+	override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
+		// do something
+	}
+}
+
+sp.registerOnSharedPreferenceChangeListener(listener)
+
+sp.unregisterOnSharedPreferenceChangeListener(listener)
+```
+
+从代码看得出，这个方法一定是在主线程内完成的。那么如果监听太多，或者监听里面有耗时操作，那么必定还是会ANR。
