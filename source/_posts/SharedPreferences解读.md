@@ -17,14 +17,12 @@ public SharedPreferences getSharedPreferences(String name, int mode) {
 }
 ```
 
-里面调用的mBase的对应方法，通过百度，查到mBase其实就是传说中的`ContextImpl`：
+ContextWrapper里面调用的mBase的对应方法，通过百度，查到mBase其实就是传说中的`ContextImpl`：
 
 ```java
 @Override
 public SharedPreferences getSharedPreferences(String name, int mode) {
-	// At least one application in the world actually passes in a null
-	// name.  This happened to work because when we generated the file name
-	// we would stringify it to "null.xml".  Nice.
+
 	if (mPackageInfo.getApplicationInfo().targetSdkVersion <
 			Build.VERSION_CODES.KITKAT) {
 		if (name == null) {
@@ -137,6 +135,8 @@ private File makeFilename(File base, String name) {
 
 ### getSharedPreferences 重载方法
 
+接下来调用了一个重载方法，主要是创建`SharedPreferenceImpl`对象，通过缓存进arrayMap，并且以file作为key一一绑定。
+
 ```java
 @Override
 public SharedPreferences getSharedPreferences(File file, int mode) {
@@ -147,14 +147,7 @@ public SharedPreferences getSharedPreferences(File file, int mode) {
 		sp = cache.get(file);
 		if (sp == null) {
 			checkMode(mode);
-			if (getApplicationInfo().targetSdkVersion >= android.os.Build.VERSION_CODES.O) {
-				if (isCredentialProtectedStorage()
-						&& !getSystemService(UserManager.class)
-								.isUserUnlockingOrUnlocked(UserHandle.myUserId())) {
-					throw new IllegalStateException("SharedPreferences in credential encrypted "
-							+ "storage are not available until after user is unlocked");
-				}
-			}
+			
 			//创建SharedPreferencesImpl
 			sp = new SharedPreferencesImpl(file, mode);
 			//缓存SP
@@ -416,7 +409,6 @@ public boolean commit() {
 
 	MemoryCommitResult mcr = commitToMemory();
 	
-	//异步写入磁盘，但是在异步的线程上是同步进行的
 	SharedPreferencesImpl.this.enqueueDiskWrite(mcr, null);
 	try {
 		mcr.writtenToDiskLatch.await();
@@ -596,16 +588,7 @@ private static class MemoryCommitResult {
 
 #### 最重要的方法writeToFile
 
-这个方法太长了，所以要分成两种情况来解读，即：
-
-- 文件实际存在的情况
-- 文件实际不存在的情况
-
-考虑这种情况其实是Android的一种安全机制，我们前面说过，在调用`ContextImpl.getSharedpreferences(String name,int mode)`时就会创建文件了，那为什么这里还要判断文件不存在的情况呢？
-
-因为人，因为手贱，用户可能会手动删除掉SP文件！
-
-##### 文件存在
+##### 备份文件
 
 ```java
 // 判断是否满足写入条件，并且备份文件
