@@ -772,7 +772,7 @@ public class QueuedWork {
     }
 
     /**
-     * 触发要立即处理的排队工作。排队的工作在异步的单独线程上处理。在执行该操作的同时，还要处理该线程上的所有修整器。可以以某种方式实施整理器，以检查排队的工作是否完成。在Activity基类的onPause（）， BroadcastReceiver的onReceive之后，Service命令处理之后等等被调用（因此，异步工作永远不会丢失）
+     * 在主线程立即处理剩余任务
      */
     public static void waitToFinish() {
 
@@ -784,6 +784,8 @@ public class QueuedWork {
 
 			//解除loop
             if (handler.hasMessages(QueuedWorkHandler.MSG_RUN)) {
+
+				//移除消息，使handlerThread剩余的任务不再执行了
                 handler.removeMessages(QueuedWorkHandler.MSG_RUN);
             }
 
@@ -794,9 +796,10 @@ public class QueuedWork {
 		//线程使用自检
         StrictMode.ThreadPolicy oldPolicy = StrictMode.allowThreadDiskWrites();
         try {
-			//系统偷偷的写入了一次，而且是在**主线程**直接调用的
+			//当生命周期变化时，系统会主动触发写入，这可是在主线程哦
             processPendingWork();
         } finally {
+			//允许在当前线程进行文件写入操作
             StrictMode.setThreadPolicy(oldPolicy);
         }
 
@@ -809,7 +812,7 @@ public class QueuedWork {
                     finisher = sFinishers.poll();
                 }
 
-				//由于在同一线程中先调用了processPendingWork()，完成写操作后就会remove调finisher，所以大多数情况会走到这里
+				//由于在同一线程中先调用了processPendingWork()，完成写操作后就会remove掉finisher，所以大多数情况会走到这里
                 if (finisher == null) {
                     break;
                 }
@@ -821,6 +824,7 @@ public class QueuedWork {
         }
     }
 	//同一个方法在7.0上的实现
+	// 在一个单线程的线程池中执行，就单纯的靠countDownLatch.await()来等待全部任务执行完毕。
 	public static void waitToFinish() {
         Runnable toFinish;
         while ((toFinish = sPendingWorkFinishers.poll()) != null) {
@@ -857,8 +861,7 @@ public class QueuedWork {
     }
 
 	/**
-	 *	每次都会启动一个HandlerThread
-     * 获取一个单例的Handler，当然这玩意的looper就是handlerThread的looper
+	 *	创建一个HandlerThread，并且返回一个单例的Handler
 	 * queue方法和waitToFinish中调用
      */
     @UnsupportedAppUsage
@@ -907,7 +910,7 @@ public class QueuedWork {
                 work = (LinkedList<Runnable>) sWork.clone();
 				//释放内存
                 sWork.clear();
-				//解除loop，退出死循环
+				//释放msg
                 getHandler().removeMessages(QueuedWorkHandler.MSG_RUN);
             }
 
@@ -951,6 +954,8 @@ public void handleStopActivity(IBinder token, int configChanges,
 ```
 
 3.0及以后系统，当发生cresh或者Activity、broaderCaster、service生命周期发生改变时，主线程会自动调用`QueuedWork.waitToFinish()`把当前挂起的修改写入到文件系统中！！！如果没有任何修改，那么就会遍历执行所有的finisher！！！这就是`apply`方法提交也会导致ANR的秘密！！！
+
+如果过多的使用apply，可能在activity生命周期发生改变时，没能执行完全部的apply，那么就会在生命周期时自动执行余下的apply，保证异步任务不会丢失。
 
 #### 最重要的方法writeToFile
 
