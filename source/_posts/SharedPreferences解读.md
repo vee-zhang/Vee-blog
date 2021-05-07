@@ -546,6 +546,8 @@ private void enqueueDiskWrite(final MemoryCommitResult mcr,
 					writeToFile(mcr, isFromSyncCommit);
 				}
 				synchronized (mLock) {
+
+					//文件写完之后才会减1
 					mDiskWritesInFlight--;
 				}
 				//apply会执行
@@ -560,6 +562,7 @@ private void enqueueDiskWrite(final MemoryCommitResult mcr,
 	if (isFromSyncCommit) {
 		boolean wasEmpty = false;
 		synchronized (mLock) {
+			//如果在commit之后紧接着又调用了commit，那么这里就是false了
 			wasEmpty = mDiskWritesInFlight == 1;
 		}
 		if (wasEmpty) {
@@ -568,7 +571,7 @@ private void enqueueDiskWrite(final MemoryCommitResult mcr,
 		}
 	}
 
-	// apply执行
+	// apply执行；频繁commit时后面的commit会转为异步执行
 	QueuedWork.queue(writeToDiskRunnable, !isFromSyncCommit);
 }
 ```
@@ -578,6 +581,8 @@ private void enqueueDiskWrite(final MemoryCommitResult mcr,
 我们看到，系统通过变换`mDiskWritesInFlight`尽可能把`commit`转换为`apply`去执行。
 
 `commit`在当前线程就直接`run`了，而`apply`则是提交给了`QueuedWork.queue(writeToDiskRunnable,false)`。
+
+这里要注意`mDiskWritesInFlight`这个计数器只有在`commitToMemory()`方法中才会++，只有在`writeToFile()`完成后才会--，所以当commit之后，紧接着再次调用commit，那么之后的commit都会转成异步方式执行写入，而异步是通过HandlerThread实现的（8.0以前则是通过SingleThreadPool实现），`QueuedWork.queue()`方法是把任务提交到了一个静态队列里面，由HandlerThread顺序执行。
 
 ### commitToMemory
 
@@ -1129,3 +1134,9 @@ sp.unregisterOnSharedPreferenceChangeListener(listener)
 ```
 
 从代码看得出，这个方法一定是在主线程内完成的。那么如果监听太多，或者监听里面有耗时操作，那么必定还是会ANR。
+
+### 剩余任务
+
+[] apply一次性提交机制
+[] sp问题整理
+[] sp改造方式
