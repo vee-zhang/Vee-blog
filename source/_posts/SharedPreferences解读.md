@@ -143,7 +143,7 @@ public SharedPreferences getSharedPreferences(File file, int mode) {
 	SharedPreferencesImpl sp;
 	synchronized (ContextImpl.class) {
 		//获取缓存，该缓存把file和SharedPreferencesImpl一一绑定
-		final ArrayMap<file, sharedpreferencesimpl=""sharedpreferencesimpl""> cache = getSharedPreferencesCacheLocked();
+		final ArrayMap<file, sharedpreferencesimpl> cache = getSharedPreferencesCacheLocked();
 		sp = cache.get(file);
 		if (sp == null) {
 			checkMode(mode);
@@ -155,22 +155,23 @@ public SharedPreferences getSharedPreferences(File file, int mode) {
 			return sp;
 		}
 	}
+
+	//如果开启多进程模式，或者小于3.0版本，则每次都重新加载文件
 	if ((mode & Context.MODE_MULTI_PROCESS) != 0 ||
 		getApplicationInfo().targetSdkVersion < android.os.Build.VERSION_CODES.HONEYCOMB) {
 		
-		//如果系统版本小于Android3.0，就调用此方法把File一次性读取出来
 		sp.startReloadIfChangedUnexpectedly();
 	}
 	return sp;
 }
 
-private ArrayMap<file, sharedpreferencesimpl=""sharedpreferencesimpl""> getSharedPreferencesCacheLocked() {
+private ArrayMap<file, sharedpreferencesimpl> getSharedPreferencesCacheLocked() {
 	if (sSharedPrefsCache == null) {
 		sSharedPrefsCache = new ArrayMap<>();
 	}
 
 	final String packageName = getPackageName();
-	ArrayMap<file, sharedpreferencesimpl=""sharedpreferencesimpl""> packagePrefs = sSharedPrefsCache.get(packageName);
+	ArrayMap<file, sharedpreferencesimpl> packagePrefs = sSharedPrefsCache.get(packageName);
 	if (packagePrefs == null) {
 		packagePrefs = new ArrayMap<>();
 		sSharedPrefsCache.put(packageName, packagePrefs);
@@ -182,7 +183,7 @@ private ArrayMap<file, sharedpreferencesimpl=""sharedpreferencesimpl""> getShare
 
 这个重载方法，主要是创建`SharedPreferencesImpl`对象并且缓存，File作为key，SharedPreferencesImpl作为value，保证了File和SharedPreferencesImpl的一一对应。
 
-这里还区分了系统版本，3.0以下版本，通过`sp.startReloadIfChangedUnexpectedly();`，创建一个子线程，把文件内容全都读取到SharedPreferencesImpl中。
+
 
 ### SharedPreferencesImpl构造方法
 
@@ -377,7 +378,7 @@ public Editor edit() {
 
 	//缓存
 	@GuardedBy("mEditorLock")
-	private final Map<string, object=""object""> mModified = new HashMap<>();
+	private final Map<string, object> mModified = new HashMap<>();
 
 	//标志位
 	@GuardedBy("mEditorLock")
@@ -689,7 +690,7 @@ private static class MemoryCommitResult {
 	final boolean keysCleared;
 	@Nullable final List<string> keysModified;
 	@Nullable final Set<onsharedpreferencechangelistener> listeners;
-	final Map<string, object=""object""> mapToWriteToDisk;
+	final Map<string, object> mapToWriteToDisk;
 	final CountDownLatch writtenToDiskLatch = new CountDownLatch(1);
 
 	@GuardedBy("mWritingToDiskLock")
@@ -700,7 +701,7 @@ private static class MemoryCommitResult {
 	private MemoryCommitResult(long memoryStateGeneration, boolean keysCleared,
 			@Nullable List<string> keysModified,
 			@Nullable Set<onsharedpreferencechangelistener> listeners,
-			Map<string, object=""object""> mapToWriteToDisk) {
+			Map<string, object> mapToWriteToDisk) {
 		this.memoryStateGeneration = memoryStateGeneration;
 		this.keysCleared = keysCleared;
 		this.keysModified = keysModified;
@@ -1082,7 +1083,7 @@ mcr.setDiskWriteResult(false, false);
 - 用XmlUtil执行写入，写入成功后删除备份返回结果
 - 写入失败则清理文件，保留备份
 
-
+这里还要注意的是，无论如何都会创建一个新的源文件来写入，所以不论是`commit`还是`apply`都是全量更新，效率非常的低！
 
 ### notifyListeners
 
@@ -1116,7 +1117,9 @@ private void notifyListeners(final MemoryCommitResult mcr) {
 }
 ```
 
-看了这个方法，我才知道SP还可以注册监听。
+看了这个方法，我才知道SP还可以注册监听。并且只有在`commit`或者`apply`时才会触发监听。而且**必定在主线程回调**。那么如果监听太多，或者监听里面有耗时操作，那么必定还是会ANR。
+
+下面是监听的用法：
 
 ```java
 val sp = getSharedPreferences("我擦", Context.MODE_PRIVATE)
@@ -1132,13 +1135,192 @@ sp.registerOnSharedPreferenceChangeListener(listener)
 
 sp.unregisterOnSharedPreferenceChangeListener(listener)
 ```
+### 专题：SP的缓存机制
 
-从代码看得出，这个方法一定是在主线程内完成的。那么如果监听太多，或者监听里面有耗时操作，那么必定还是会ANR。
+#### 内存缓存
 
-### 剩余任务
+##### `ContextImpl`中
 
-啊 [ ] apply一次性提交机制
+```java
+private ArrayMap<String, File> mSharedPrefsPaths;
+```
 
-[-] sp问题整理
+用来缓存sp的file对象，它把name与file一一对应，用来根据name快速找到对应的file。
 
-[*] sp改造方式
+```java
+private static ArrayMap<String, ArrayMap<File, SharedPreferencesImpl>> sSharedPrefsCache;
+```
+
+用来根据file缓存spIml对象。
+
+```java
+private final File mFile;
+```
+
+sp的硬盘缓存。
+
+##### spImpl中
+
+```java
+private Map<String, Object> mMap;
+```
+
+内容的内存缓存，主要用于`getXXX()`方法。
+
+
+##### EditorImpl中
+
+```java
+private final Map<string, object> mModified = new HashMap<>();
+```
+
+写缓存，主要用于`putXXX()`方法写入的缓存，会先存到这里，等调用`commit`或者`apply`时，通过`commitToMemory`方法一次性刷入`mapToWriteToDisk`中。
+
+##### MemoryCommitResult中
+
+```java
+final Map<string, object> mapToWriteToDisk;
+```
+
+用来做写入前的缓存，但其实并不是缓存，而是`mMap`的引用。修改它就是修改`mMap`。
+
+#### 硬盘缓存
+
+- mFile ：位于/data/data/包名/shared_prefs/[name].xml，真正的sp文件，xml格式。
+- mBackupFile: 位于/data/data/包名/shared_prefs/[name].xml.bak,备份文件。
+
+### 专题：SP的备份恢复机制
+
+#### 备份
+
+```java
+private void writeToFile(MemoryCommitResult mcr, boolean isFromSyncCommit) {
+
+        //如果文件存在而备份不存在，则从源文件创建备份文件。
+        if (!backupFileExists) {
+            if (!mFile.renameTo(mBackupFile)) {
+                mcr.setDiskWriteResult(false, false);
+                return;
+            }
+        } else {//如果源文件和备份都存在，则删除源文件
+            mFile.delete();
+        }
+    
+
+
+        ///写入源文件，此时一定会生成一个新的源文件
+        FileOutputStream str = createFileOutputStream(mFile);
+        ...
+
+        // 如果写入成功，就删除备份
+        mBackupFile.delete();
+
+        ///写入失败就删除脏文件，保留备份
+        mFile.delete()
+}
+```
+
+这里就一句话：**写前备份，写后成功删备份，失败删源文件**。
+
+#### 恢复
+
+```java
+SharedPreferencesImpl(File file, int mode) {
+    mFile = file;
+    mBackupFile = makeBackupFile(file);
+    mMode = mode;
+    mLoaded = false;
+    mMap = null;
+    mThrowable = null;
+    startLoadFromDisk();
+}
+```
+
+在`spImpl`的构造方法中会创建一个mBackupFile。之后，就会开始从硬盘加载，也就是`startLoadFromDisk`。在这个方法中会创建一个子线程，执行`loadFromDisk`:
+
+```java
+private void loadFromDisk() {
+    synchronized (mLock) {
+        if (mLoaded) {
+            return;
+        }
+        //如果有备份就删掉原文件，然后从备份中恢复
+        if (mBackupFile.exists()) {
+            mFile.delete();
+            mBackupFile.renameTo(mFile);
+        }
+    }
+
+    //从mFile中解析xml到mMap缓存中
+}
+```
+
+而第一次通过构造方法过来到这里时，`mBackupFile`还没有创建真实的物理文件，所以不会走恢复流程，而是直接从mFile中加载内容。
+
+但是如果`mBackupFile`已经存在，则先删掉源文件，再从备份中恢复，最后再读取到内存缓存。
+
+#### 总结
+
+SP会在写入硬盘之前，先把以前的数据备份，写入成功就删除备份，失败就删除脏的源文件而保留备份。待下次初始化SP时，会重新从硬盘读取内容到缓存，此时如果存在备份，就先删掉源文件再从备份还原。
+
+### SP中的锁
+
+- mLock 主要用来保护spImpl对象的安全，它是所有访问spImpl对象的操作阻塞，已达到安全性目的。
+- mWritingToDiskLock：文件写入锁，当多次调用apply时可以阻塞写入。
+- mEditorLock：多线程调用`editor.putXXX()`方法时的同步锁，用来保护editor内部的`mModified`缓存的数据安全性。
+- sLock：QueuedWork中用来同步启动HandlerThread和同步访问work和finisher这两条队列的同步锁。
+- sProcessingWork：确保同一时间只有一个线程调用`processPendingWork()`方法(前面说过apply会一部调用这方法，而activityThread会在生命周期变化时同步调用这方法)。
+- writtenToDiskLatch: 文件写入结果MemoryCommitResult中的计数锁，阻塞当前线程，只能countDown一次，代表文件读写完成(并不代表成功)，然后才能继续执行线程。
+
+### SP造成的卡顿与ANR分析
+
+#### xml文件造成的卡顿
+
+SP在初始化过程中，要创建SPImpl对象时会创建一个**子线程**访问硬盘，**加载并解析xml文件**到内存缓存。如果这个文件比较大就会造成卡顿。那为什么在子线程中玩这一套会影响到主线程呢？就因为玩的是xml格式文件。
+
+SP使用了高效的poll方式来解析xml成map，在此过程中会创建大量的临时对象，造成频繁的GC，而java在GC时会暂停所有的线程，当然也包括主线程，这就造成了主线程的卡顿了。
+
+#### 初始化后直接读取造成的卡顿
+
+在初始化过程中会调用`startLoadFromDisk()`加载文件，如果文件还没有加载完就在主线程调用`getXXX()`方法也会造成卡顿，甚至ANR。因为这两个方法都竞争**`mLock`**锁，并且在`getXXX()`中还会死循环让`mLock.wait()`，而只有文件全部读取完成后这把锁才会notifyAll。
+
+#### commit方法造成的卡顿
+
+commit是在当前线程去写入，写入完成之后还会返回结果，如果在主线程调用这个方法，就会容易引起ANR。
+
+#### apply方法引起的ANR
+
+apply本身是依靠handlerThread任务队列来异步写入的，但是`ActivityThread`在生命周期发生改变时，会在主线程主动调用`QueuedWork`的`waitToFinish()`方法，遍历执行所有的finisher，而finisher中只有一行代码，就是让mcr的计数锁去await当前线程，对于activityThread来说就是主线程。
+
+Android8.0之后，还加入可主动调用`processPendingWork()`方法执行写入，所以导致Apply方法也很容易造成ANR。
+
+而如果我们过多的使用了apply，那么就放到了QueuedWork中的一个队列，依靠仅仅一个HandlerThread，一个一个的慢慢处理。那么当生命周期改变时，这些work没有被处理完，`waitToFinish()`方法就会移除剩余的msg，剩下的work会切换到主线程来执行，并且靠计数锁阻塞主线程，就造成了ANR。
+
+>从这里可以看出，google希望在页面生命周期改变时，sp应该切换到主线程同步写入，宁可阻塞UI也要保证sp的写入完整性，这样才能保证到下一个页面我们直接get时能够拿到最新的值。同时这里也体现了sp应该只存入少量数据的设计思想。
+
+### SP的问题梳理
+
+1. xml格式，导致文件庞大，占用硬盘；
+2. xml解析带来的频繁GC，造成卡顿；
+3. 初始化时把所有文件内容缓存，造成内存压力；
+4. commit和apply都会造成ANR；
+5. 每次全量写入；
+6. 进程不安全；
+7. 只能在主线程监听；
+
+### 注意事项：
+
+1. 不要存过多内容，尤其不要存json字符串，因为json字符串中存在大量的转义字符&；
+2. 尽量拆分多个sp文件；
+3. 不要在初始化sp后就直接put;
+4. 不要过多调用`sp.edit()`因为每次都会生成新的`editor`对象；
+5. 尽量使用apply方法，不要多次使用apply方法。
+6. 多进程使用依赖**contentProvider**。
+
+### 改造思路
+
+1. 采用protobuf减少文件体积，提高序列化、反序列化效率，提高io速度；
+2. 引入懒加载机制；
+3. 增量写入；
+4. 解除监听回调的主线程限制。
+5. 终极方案当然是改用mmkv或者dataStorge
