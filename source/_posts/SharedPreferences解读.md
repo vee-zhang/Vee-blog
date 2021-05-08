@@ -1137,6 +1137,8 @@ sp.unregisterOnSharedPreferenceChangeListener(listener)
 
 ### 剩余任务
 
-[] apply一次性提交机制
-[] sp问题整理
-[] sp改造方式
+啊 [ ] apply一次性提交机制
+
+[-] sp问题整理
+
+[*] sp改造方式
