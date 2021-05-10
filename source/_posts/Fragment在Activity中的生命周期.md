@@ -12,6 +12,10 @@ Fragment的`onResume`是在Activity的`onResume`执行完之后才会执行，�
 
 跳转时，前一个页面的生命周期走到`onPause`时暂停，等待后一个页面的生命周期走到`onResume`之后，再继续执行`onStop`；同理，返回时后一个页面走到`onPause`时暂停，前一个页面`onRestart`,`onStart`,`onResume`之后，再继续执行剩下的`onStop`,`onDestory`。
 
+## 懒加载
+
+Fragment的懒加载主要是用于`ViewPager`中，ViewPager会在加载fragment之前调用其`setUserVisibleHint()`方法。所以`setUserVisibleHint()`是在`onActtch()`方法之前调用。
+
 ## 流程图
 
 ![生命周期](/source/resource/生命周期.svg)
