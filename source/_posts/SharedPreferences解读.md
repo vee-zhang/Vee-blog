@@ -6,7 +6,10 @@ tags: Android
 
 # SharedPreferences解读
 
-## getSharedPreferences
+>SharedPreferences是我们平时常用的简单储存工具。优点就是用起来方便，而且线程安全，甚至有的公司干脆连sqLite都不用了，全用SP！但是突然有一天腾讯弄出了个MMKV用来替代他，最近google也弄了个DataStorage，而且最近面试也是必问原理，于是我决定死磕一下SP。
+
+## 初始化
+### getSharedPreferences
 
 我们通过这个方法拿到SP，该方法在Activity中内置，最终调用的是ContextWrapper的方法：
 
@@ -182,8 +185,6 @@ private ArrayMap<file, sharedpreferencesimpl> getSharedPreferencesCacheLocked() 
 ```
 
 这个重载方法，主要是创建`SharedPreferencesImpl`对象并且缓存，File作为key，SharedPreferencesImpl作为value，保证了File和SharedPreferencesImpl的一一对应。
-
-
 
 ### SharedPreferencesImpl构造方法
 
@@ -727,19 +728,12 @@ private static class MemoryCommitResult {
  */
 public class QueuedWork {
 
-    /** Delay for delayed runnables, as big as possible but low enough to be barely perceivable */
     private static final long DELAY = 100;
 
     /** 我是一把锁 */
     private static final Object sLock = new Object();
 
-    /**
-     * Used to make sure that only one thread is processing work items at a time. This means that
-     * they are processed in the order added.
-     *
-     * This is separate from {@link #sLock} as this is held the whole time while work is processed
-     * and we do not want to stall the whole class.
-     */
+    
     private static Object sProcessingWork = new Object();
 
     @GuardedBy("sLock")
@@ -1135,9 +1129,9 @@ sp.registerOnSharedPreferenceChangeListener(listener)
 
 sp.unregisterOnSharedPreferenceChangeListener(listener)
 ```
-### 专题：SP的缓存机制
+## 专题：SP的缓存机制
 
-#### 内存缓存
+### 内存缓存
 
 ##### `ContextImpl`中
 
@@ -1189,7 +1183,7 @@ final Map<string, object> mapToWriteToDisk;
 - mFile ：位于/data/data/包名/shared_prefs/[name].xml，真正的sp文件，xml格式。
 - mBackupFile: 位于/data/data/包名/shared_prefs/[name].xml.bak,备份文件。
 
-### 专题：SP的备份恢复机制
+## 专题：SP的备份恢复机制
 
 #### 备份
 
@@ -1263,7 +1257,7 @@ private void loadFromDisk() {
 
 SP会在写入硬盘之前，先把以前的数据备份，写入成功就删除备份，失败就删除脏的源文件而保留备份。待下次初始化SP时，会重新从硬盘读取内容到缓存，此时如果存在备份，就先删掉源文件再从备份还原。
 
-### SP中的锁
+## 专题：SP中的锁
 
 - mLock 主要用来保护spImpl对象的安全，它是所有访问spImpl对象的操作阻塞，已达到安全性目的。
 - mWritingToDiskLock：文件写入锁，当多次调用apply时可以阻塞写入。
@@ -1272,23 +1266,23 @@ SP会在写入硬盘之前，先把以前的数据备份，写入成功就删除
 - sProcessingWork：确保同一时间只有一个线程调用`processPendingWork()`方法(前面说过apply会一部调用这方法，而activityThread会在生命周期变化时同步调用这方法)。
 - writtenToDiskLatch: 文件写入结果MemoryCommitResult中的计数锁，阻塞当前线程，只能countDown一次，代表文件读写完成(并不代表成功)，然后才能继续执行线程。
 
-### SP造成的卡顿与ANR分析
+## 专题：SP造成的卡顿与ANR分析
 
-#### xml文件造成的卡顿
+### xml文件造成的卡顿
 
 SP在初始化过程中，要创建SPImpl对象时会创建一个**子线程**访问硬盘，**加载并解析xml文件**到内存缓存。如果这个文件比较大就会造成卡顿。那为什么在子线程中玩这一套会影响到主线程呢？就因为玩的是xml格式文件。
 
 SP使用了高效的poll方式来解析xml成map，在此过程中会创建大量的临时对象，造成频繁的GC，而java在GC时会暂停所有的线程，当然也包括主线程，这就造成了主线程的卡顿了。
 
-#### 初始化后直接读取造成的卡顿
+### 初始化后直接读取造成的卡顿
 
 在初始化过程中会调用`startLoadFromDisk()`加载文件，如果文件还没有加载完就在主线程调用`getXXX()`方法也会造成卡顿，甚至ANR。因为这两个方法都竞争**`mLock`**锁，并且在`getXXX()`中还会死循环让`mLock.wait()`，而只有文件全部读取完成后这把锁才会notifyAll。
 
-#### commit方法造成的卡顿
+### commit方法造成的卡顿
 
 commit是在当前线程去写入，写入完成之后还会返回结果，如果在主线程调用这个方法，就会容易引起ANR。
 
-#### apply方法引起的ANR
+### apply方法引起的ANR
 
 apply本身是依靠handlerThread任务队列来异步写入的，但是`ActivityThread`在生命周期发生改变时，会在主线程主动调用`QueuedWork`的`waitToFinish()`方法，遍历执行所有的finisher，而finisher中只有一行代码，就是让mcr的计数锁去await当前线程，对于activityThread来说就是主线程。
 
@@ -1298,7 +1292,7 @@ Android8.0之后，还加入可主动调用`processPendingWork()`方法执行写
 
 >从这里可以看出，google希望在页面生命周期改变时，sp应该切换到主线程同步写入，宁可阻塞UI也要保证sp的写入完整性，这样才能保证到下一个页面我们直接get时能够拿到最新的值。同时这里也体现了sp应该只存入少量数据的设计思想。
 
-### SP的问题梳理
+## 专题：SP的问题梳理
 
 1. xml格式，导致文件庞大，占用硬盘；
 2. xml解析带来的频繁GC，造成卡顿；
@@ -1308,7 +1302,7 @@ Android8.0之后，还加入可主动调用`processPendingWork()`方法执行写
 6. 进程不安全；
 7. 只能在主线程监听；
 
-### 注意事项：
+## 专题：注意事项：
 
 1. 不要存过多内容，尤其不要存json字符串，因为json字符串中存在大量的转义字符&；
 2. 尽量拆分多个sp文件；
@@ -1317,7 +1311,7 @@ Android8.0之后，还加入可主动调用`processPendingWork()`方法执行写
 5. 尽量使用apply方法，不要多次使用apply方法。
 6. 多进程使用依赖**contentProvider**。
 
-### 改造思路
+## 专题：改造思路
 
 1. 采用protobuf减少文件体积，提高序列化、反序列化效率，提高io速度；
 2. 引入懒加载机制；
